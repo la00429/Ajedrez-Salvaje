@@ -1,0 +1,15 @@
+﻿AJEDREZ SALVAJE - RECURSOS DE AUDIO
+
+PROPOSITO:
+Centralizar los sonidos y la musica del videojuego.
+
+CONTENIDO ESPERADO:
+- Sonidos de movimiento y captura.
+- Efectos ambientales de cada bioma.
+- Musica de fondo.
+- Sonidos de eventos y alertas.
+
+REGLAS:
+- Usar nombres descriptivos.
+- Evitar archivos duplicados.
+- Mantener formatos compatibles con Godot.

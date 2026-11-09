@@ -1,0 +1,18 @@
+﻿AJEDREZ SALVAJE - LOGICA DE INTERFAZ
+
+RESPONSABLE:
+Integrante 4 - Biomas e interfaz.
+
+ARCHIVOS PREVISTOS:
+- game_hud.gd
+
+RESPONSABILIDADES:
+- Actualizar indicadores visuales.
+- Mostrar cambios de agua y clima.
+- Mostrar informacion de turnos.
+- Mostrar eventos y notificaciones.
+- Comunicar la interfaz con GameManager.
+
+REGLA:
+La interfaz presenta informacion; no calcula por su cuenta
+los resultados de las simulaciones.

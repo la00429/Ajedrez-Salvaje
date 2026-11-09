@@ -1,0 +1,22 @@
+﻿AJEDREZ SALVAJE - LOGICA GENERAL DEL JUEGO
+
+RESPONSABLE:
+Integrante 5 - Integracion y progresion.
+
+ARCHIVOS PREVISTOS:
+- game_manager.gd
+- turn_manager.gd
+- level_manager.gd
+- victory_manager.gd
+
+RESPONSABILIDADES:
+- Coordinar el inicio y cierre de partidas.
+- Administrar los turnos.
+- Ejecutar los sistemas en el orden establecido.
+- Gestionar los tres niveles.
+- Evaluar condiciones de victoria y derrota.
+- Conectar tablero, piezas, simulacion e interfaz.
+
+REGLA:
+No duplicar las funciones de los demas integrantes.
+Este modulo coordina los sistemas existentes.

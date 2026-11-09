@@ -1,0 +1,19 @@
+﻿AJEDREZ SALVAJE - INTERFAZ
+
+RESPONSABLE:
+Integrante 4 - Biomas e interfaz.
+
+ARCHIVOS PREVISTOS:
+- GameHUD.tscn
+
+RESPONSABILIDADES:
+- Mostrar el nivel actual.
+- Mostrar el turno y el estado de la partida.
+- Mostrar el nivel de agua.
+- Mostrar eventos ambientales.
+- Mostrar informacion de la guarderia.
+- Presentar mensajes de victoria o derrota.
+
+REGLA:
+La interfaz debe consultar los sistemas del juego,
+no duplicar su logica.

@@ -1,0 +1,14 @@
+﻿AJEDREZ SALVAJE - RECURSOS DE PIEZAS
+
+PROPOSITO:
+Guardar recursos reutilizables para configurar las piezas.
+
+CONTENIDO:
+- Configuraciones de peones.
+- Configuraciones de caballos.
+- Configuraciones de reyes.
+
+REGLAS:
+- Utilizar recursos de Godot cuando sea conveniente.
+- Mantener separados los datos y la logica.
+- Documentar cualquier atributo adicional.
