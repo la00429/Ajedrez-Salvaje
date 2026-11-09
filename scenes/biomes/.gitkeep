@@ -1,0 +1,22 @@
+﻿AJEDREZ SALVAJE - ESCENAS DE BIOMAS
+
+RESPONSABLE:
+Integrante 4 - Biomas e interfaz.
+
+PROPOSITO:
+Contener las escenas visuales de los niveles.
+
+ESCENAS PREVISTAS:
+- Paramo.tscn
+- Amazonia.tscn
+- Santuario.tscn
+
+RESPONSABILIDADES:
+- Representar visualmente cada entorno.
+- Incorporar vegetacion y elementos ambientales.
+- Diferenciar los escenarios.
+- Permitir que el nivel activo se identifique visualmente.
+
+REGLA:
+Los parametros de simulacion deben configurarse mediante recursos,
+no quedar dispersos en la escena.

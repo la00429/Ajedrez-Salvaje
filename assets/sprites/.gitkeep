@@ -1,0 +1,15 @@
+﻿AJEDREZ SALVAJE - RECURSOS GRAFICOS
+
+PROPOSITO:
+Guardar las imagenes y sprites utilizados por el videojuego.
+
+CONTENIDO ESPERADO:
+- Sprites de las piezas: peon, caballo y rey.
+- Elementos visuales de los biomas.
+- Casillas, vegetacion, obstaculos y efectos visuales.
+
+REGLAS:
+- Utilizar nombres descriptivos.
+- Mantener organizados los recursos por categoria.
+- No guardar archivos temporales ni duplicados.
+- Consultar antes de reemplazar recursos compartidos.

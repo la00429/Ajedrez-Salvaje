@@ -1,0 +1,18 @@
+﻿AJEDREZ SALVAJE - ESCENA PRINCIPAL
+
+RESPONSABLE:
+Integracion y progresion del juego.
+
+PROPOSITO:
+Contener la escena principal desde la cual se inicia el videojuego.
+
+ARCHIVOS PREVISTOS:
+- Main.tscn
+
+RESPONSABILIDADES:
+- Integrar tablero, piezas, biomas e interfaz.
+- Conectar los sistemas del juego.
+- Verificar que las escenas se carguen correctamente.
+
+REGLA:
+No implementar aqui toda la logica de los demas modulos.

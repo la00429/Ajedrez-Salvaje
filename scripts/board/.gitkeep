@@ -1,0 +1,19 @@
+﻿AJEDREZ SALVAJE - LOGICA DEL TABLERO
+
+RESPONSABLE:
+Integrante 1 - Tablero y casillas.
+
+ARCHIVOS PREVISTOS:
+- board.gd
+- cell.gd
+
+RESPONSABILIDADES:
+- Crear y administrar la matriz 8x8.
+- Asignar coordenadas a las casillas.
+- Consultar que pieza ocupa cada posicion.
+- Colocar, retirar y mover piezas en el tablero.
+- Detectar casillas ocupadas y limites.
+
+REGLA:
+El tablero administra posiciones; las reglas de movimiento
+corresponden al modulo de piezas.

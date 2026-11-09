@@ -1,0 +1,23 @@
+﻿AJEDREZ SALVAJE - ESCENAS DE PIEZAS
+
+RESPONSABLE:
+Integrante 2 - Piezas y reglas de ajedrez.
+
+ARCHIVOS PREVISTOS:
+- ChessPiece.tscn
+
+PIEZAS DEL ALCANCE REDUCIDO:
+- Peon.
+- Caballo.
+- Rey.
+
+RESPONSABILIDADES:
+- Representar visualmente las piezas.
+- Permitir seleccionarlas.
+- Mostrar sus movimientos validos.
+- Diferenciar las piezas de cada bando.
+
+REGLAS:
+- No implementar torres, alfiles ni dama.
+- No implementar enroque.
+- Coordinar las reglas de movimiento con el tablero.

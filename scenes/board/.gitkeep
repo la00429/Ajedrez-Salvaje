@@ -1,0 +1,19 @@
+﻿AJEDREZ SALVAJE - ESCENAS DEL TABLERO
+
+RESPONSABLE:
+Integrante 1 - Tablero y casillas.
+
+ARCHIVOS PREVISTOS:
+- Board.tscn
+- Cell.tscn
+
+RESPONSABILIDADES:
+- Construir un tablero de 8x8.
+- Representar las casillas.
+- Diferenciar casillas claras y oscuras.
+- Identificar coordenadas y posiciones.
+- Facilitar la seleccion de casillas.
+
+REGLAS:
+- No programar aqui el comportamiento interno de las piezas.
+- Mantener la escena reutilizable.

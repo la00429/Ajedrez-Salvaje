@@ -1,3 +1,12 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
+
+# Godot import and export files
+.import/
+export.cfg
+export_presets.cfg
+
+# Temporary files
+*.tmp
+*.log

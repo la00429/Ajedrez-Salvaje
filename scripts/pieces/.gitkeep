@@ -1,0 +1,23 @@
+﻿AJEDREZ SALVAJE - LOGICA DE PIEZAS
+
+RESPONSABLE:
+Integrante 2 - Piezas y reglas de ajedrez.
+
+ARCHIVOS PREVISTOS:
+- chess_piece.gd
+- pawn.gd
+- knight.gd
+- king.gd
+- movement_validator.gd
+
+RESPONSABILIDADES:
+- Definir el comportamiento de cada pieza.
+- Validar movimientos permitidos.
+- Controlar capturas.
+- Evitar movimientos fuera del tablero.
+- Validar jaque y jaque mate.
+- Respetar las reglas del conjunto reducido.
+
+REGLA:
+No asumir que un movimiento es valido solo porque la interfaz
+permite seleccionar una casilla.

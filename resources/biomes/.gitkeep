@@ -1,0 +1,20 @@
+﻿AJEDREZ SALVAJE - CONFIGURACION DE BIOMAS
+
+PROPOSITO:
+Guardar los parametros especificos de cada nivel.
+
+ARCHIVOS PREVISTOS:
+- paramo_config.tres
+- amazonia_config.tres
+- santuario_config.tres
+
+RESPONSABILIDADES:
+- Definir parametros ambientales.
+- Configurar condiciones iniciales.
+- Establecer valores propios de cada bioma.
+- Facilitar el uso del mismo motor de simulacion en los tres niveles.
+
+REGLA:
+No colocar valores arbitrarios.
+Los parametros deben estar respaldados por la especificacion
+y las decisiones aprobadas por el equipo.

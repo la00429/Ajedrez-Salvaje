@@ -1,0 +1,30 @@
+﻿AJEDREZ SALVAJE - MOTOR DE SIMULACION
+
+RESPONSABLE:
+Integrante 3 - Simulacion.
+
+PROPOSITO:
+Implementar los modelos matematicos y computacionales del juego.
+
+ARCHIVOS PREVISTOS:
+- prng.gd
+- monte_carlo.gd
+- water_balance.gd
+- nursery_queue.gd
+- random_walk.gd
+- rival_agents.gd
+
+RESPONSABILIDADES:
+1. PRNG: generar numeros pseudoaleatorios.
+2. Monte Carlo: simular eventos climaticos.
+3. Balance hidrico: actualizar disponibilidad de agua.
+4. M/M/1: gestionar la cola de la guarderia.
+5. Random Walk: desplazar el agente disruptor.
+6. ABM: controlar el comportamiento de los agentes rivales.
+
+REGLAS:
+- Separar cada modelo en su propio archivo.
+- Documentar variables, parametros y resultados.
+- No inventar probabilidades ni coeficientes.
+- Los parametros deben corresponder a la especificacion del proyecto.
+- Evitar depender directamente de elementos visuales.
