@@ -10,8 +10,8 @@ const PRESETS: Array[StringName] = [&"paramo", &"amazonia", &"santuario", &"clas
 @export var display_name := "Páramo"
 
 @export_group("Casillas")
-@export var light_color := Color("#cfd2b2")
-@export var dark_color := Color("#738a62")
+@export var light_color := Color("#dde0c2")
+@export var dark_color := Color("#5d7650")
 ## Intensidad de la textura orgánica de las casillas (0 = color plano).
 @export_range(0.0, 0.6, 0.01) var texture_strength := 0.16
 ## Frecuencia del grano de la textura por unidad de tablero (más alto = más fino).
@@ -51,8 +51,8 @@ static func create(preset: StringName) -> BoardTheme:
 	match preset:
 		&"amazonia":
 			t.display_name = "Amazonía"
-			t.light_color = Color("#d9c58f")
-			t.dark_color = Color("#3e6b3a")
+			t.light_color = Color("#e4d3a0")
+			t.dark_color = Color("#2f5a2c")
 			t.texture_strength = 0.2
 			t.frame_color = Color("#3a2a1a")
 			t.frame_accent_color = Color("#c9a046")
@@ -61,8 +61,8 @@ static func create(preset: StringName) -> BoardTheme:
 			t.effect_color = Color("#a4d17a")
 		&"santuario":
 			t.display_name = "Santuario"
-			t.light_color = Color("#d4bf9c")
-			t.dark_color = Color("#6f6a4c")
+			t.light_color = Color("#dfcca9")
+			t.dark_color = Color("#5a5236")
 			t.texture_strength = 0.22
 			t.frame_color = Color("#36302c")
 			t.frame_accent_color = Color("#b5562f")
@@ -71,8 +71,8 @@ static func create(preset: StringName) -> BoardTheme:
 			t.effect_color = Color("#d9a07a")
 		&"clasico":
 			t.display_name = "Clásico"
-			t.light_color = Color("#f0d9b5")
-			t.dark_color = Color("#b58863")
+			t.light_color = Color("#f2ddba")
+			t.dark_color = Color("#9c6c45")
 			t.texture_strength = 0.08
 			t.tile_roughness = 0.6
 			t.frame_color = Color("#4a3324")

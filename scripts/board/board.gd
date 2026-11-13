@@ -62,6 +62,7 @@ const SLAB_DEPTH := 0.24
 const TINY := Vector3(0.001, 0.001, 0.001)
 
 const TILE_SHADER := preload("res://scenes/board/tile.gdshader")
+const WOOD_SHADER := preload("res://scenes/board/wood.gdshader")
 const BoardEffect := preload("res://scripts/board/board_effect.gd")
 
 ## Escena usada para crear cada casilla.
@@ -103,6 +104,10 @@ var _frame_layer: Node3D
 var _cells_layer: Node3D
 var _pieces_layer: Node3D
 var _effects_layer: Node3D
+var _accent_material: StandardMaterial3D
+var _glow_color := Color.BLACK
+var _glow_energy := 0.0
+var _glow_tween: Tween
 var _light_material := ShaderMaterial.new()
 var _dark_material := ShaderMaterial.new()
 
@@ -478,6 +483,25 @@ func clear_highlights() -> void:
 			cell.highlight = Cell.Highlight.NONE
 
 
+## Hace brillar el filete del marco con [param color] (por ejemplo, según el
+## bando que mueve o en rojo si hay jaque). [param energy] = 0 lo apaga.
+func set_frame_glow(color: Color, energy: float = 1.0, duration: float = 0.4) -> void:
+	_glow_color = color
+	_glow_energy = energy
+	if _accent_material == null:
+		return
+	if _glow_tween and _glow_tween.is_valid():
+		_glow_tween.kill()
+	_accent_material.emission_enabled = true
+	if duration <= 0.0 or not is_inside_tree():
+		_accent_material.emission = color
+		_accent_material.emission_energy_multiplier = energy
+		return
+	_glow_tween = create_tween().set_parallel(true)
+	_glow_tween.tween_property(_accent_material, "emission", color, duration)
+	_glow_tween.tween_property(_accent_material, "emission_energy_multiplier", energy, duration)
+
+
 ## Cambia solo los colores de las casillas, conservando el resto del tema.
 func apply_palette(light: Color, dark: Color) -> void:
 	var t := board_theme.duplicate() as BoardTheme
@@ -694,7 +718,9 @@ func _refresh_cells() -> void:
 		_occupants[coord].position = coord_to_position(coord)
 
 
-## Base, borde elevado, filete decorativo y coordenadas grabadas.
+## Marco con relieve: base con escalón, borde de madera con veta, molduras
+## redondeadas en los cantos, chaflán junto a las casillas, filete metálico
+## (que puede brillar, ver [method set_frame_glow]) y coordenadas grabadas.
 func _build_frame() -> void:
 	if _frame_layer == null:
 		return
@@ -709,31 +735,58 @@ func _build_frame() -> void:
 	var rim := cell_size * board_theme.frame_height
 	var outer := half + frame
 
-	var wood := _frame_material(board_theme.frame_color, 0.55, 0.0)
 	var base := _frame_material(board_theme.frame_color.darkened(0.45), 0.8, 0.0)
-	var accent := _frame_material(board_theme.frame_accent_color, 0.35, 0.65)
+	var wood_x := _wood_material(board_theme.frame_color, Vector2(1, 0))
+	var wood_z := _wood_material(board_theme.frame_color, Vector2(0, 1))
+	var bevel := _wood_material(board_theme.frame_color.lightened(0.12), Vector2(1, 0))
+	_accent_material = _frame_material(board_theme.frame_accent_color, 0.35, 0.65)
+	_accent_material.emission_enabled = _glow_energy > 0.0
+	_accent_material.emission = _glow_color
+	_accent_material.emission_energy_multiplier = _glow_energy
 
-	# Losa base: se ve en las juntas entre casillas.
+	# Losa base: se ve en las juntas entre casillas y asoma como escalón.
 	_add_box(Vector3(0.0, -tile_depth - slab * 0.5, 0.0), Vector3(outer * 2.0, slab, outer * 2.0), base)
-	# Borde elevado (cuatro barras).
-	if frame > 0.0:
-		var height := rim + tile_depth
-		var center_y := (rim - tile_depth) * 0.5
-		var z_bar := half + frame * 0.5
-		_add_box(Vector3(0.0, center_y, z_bar), Vector3(outer * 2.0, height, frame), wood)
-		_add_box(Vector3(0.0, center_y, -z_bar), Vector3(outer * 2.0, height, frame), wood)
-		_add_box(Vector3(z_bar, center_y, 0.0), Vector3(frame, height, half * 2.0), wood)
-		_add_box(Vector3(-z_bar, center_y, 0.0), Vector3(frame, height, half * 2.0), wood)
-		# Filete metálico sobre el borde y canto interior.
-		var line := cell_size * 0.025
-		var inset := half + frame * 0.72
-		var y := rim + cell_size * 0.004
-		_add_box(Vector3(0.0, y, inset), Vector3(inset * 2.0 + line, cell_size * 0.008, line), accent)
-		_add_box(Vector3(0.0, y, -inset), Vector3(inset * 2.0 + line, cell_size * 0.008, line), accent)
-		_add_box(Vector3(inset, y, 0.0), Vector3(line, cell_size * 0.008, inset * 2.0), accent)
-		_add_box(Vector3(-inset, y, 0.0), Vector3(line, cell_size * 0.008, inset * 2.0), accent)
-		if show_coordinates:
-			_add_coordinates(half, frame, rim)
+	if frame <= 0.0:
+		return
+	var step := cell_size * 0.06
+	var bar := frame - step
+	var height := rim + tile_depth
+	var center_y := (rim - tile_depth) * 0.5
+	var z_bar := half + bar * 0.5
+	var span := (half + bar) * 2.0
+	# Borde elevado (cuatro barras con la veta a lo largo).
+	_add_box(Vector3(0.0, center_y, z_bar), Vector3(span, height, bar), wood_x)
+	_add_box(Vector3(0.0, center_y, -z_bar), Vector3(span, height, bar), wood_x)
+	_add_box(Vector3(z_bar, center_y, 0.0), Vector3(bar, height, half * 2.0), wood_z)
+	_add_box(Vector3(-z_bar, center_y, 0.0), Vector3(bar, height, half * 2.0), wood_z)
+	# Molduras redondeadas en el canto exterior e interior del borde.
+	var round_r := cell_size * 0.04
+	var edge_y := rim - round_r * 0.35
+	var out := half + bar - round_r * 0.6
+	var inn := half + round_r * 0.6
+	for sign_z in [-1.0, 1.0]:
+		_add_rod(Vector3(-out, edge_y, sign_z * out), Vector3(out, edge_y, sign_z * out), round_r, wood_x)
+		_add_rod(Vector3(-inn, edge_y, sign_z * inn), Vector3(inn, edge_y, sign_z * inn), round_r * 0.8, wood_x)
+		_add_rod(Vector3(sign_z * out, edge_y, -out), Vector3(sign_z * out, edge_y, out), round_r, wood_z)
+		_add_rod(Vector3(sign_z * inn, edge_y, -inn), Vector3(sign_z * inn, edge_y, inn), round_r * 0.8, wood_z)
+	# Chaflán claro entre el borde y las casillas.
+	var chamfer := cell_size * 0.05
+	var chamfer_y := cell_size * 0.012
+	var c := half + chamfer * 0.5
+	_add_box(Vector3(0.0, chamfer_y, c), Vector3(half * 2.0 + chamfer * 2.0, chamfer_y * 2.0, chamfer), bevel)
+	_add_box(Vector3(0.0, chamfer_y, -c), Vector3(half * 2.0 + chamfer * 2.0, chamfer_y * 2.0, chamfer), bevel)
+	_add_box(Vector3(c, chamfer_y, 0.0), Vector3(chamfer, chamfer_y * 2.0, half * 2.0), bevel)
+	_add_box(Vector3(-c, chamfer_y, 0.0), Vector3(chamfer, chamfer_y * 2.0, half * 2.0), bevel)
+	# Filete metálico sobre el borde.
+	var line := cell_size * 0.025
+	var inset := half + bar * 0.72
+	var y := rim + cell_size * 0.004
+	_add_box(Vector3(0.0, y, inset), Vector3(inset * 2.0 + line, cell_size * 0.008, line), _accent_material)
+	_add_box(Vector3(0.0, y, -inset), Vector3(inset * 2.0 + line, cell_size * 0.008, line), _accent_material)
+	_add_box(Vector3(inset, y, 0.0), Vector3(line, cell_size * 0.008, inset * 2.0), _accent_material)
+	_add_box(Vector3(-inset, y, 0.0), Vector3(line, cell_size * 0.008, inset * 2.0), _accent_material)
+	if show_coordinates:
+		_add_coordinates(half, bar, rim)
 
 
 func _add_coordinates(half: float, frame: float, rim: float) -> void:
@@ -769,6 +822,32 @@ func _add_box(at: Vector3, size: Vector3, material: Material) -> void:
 	mesh.material_override = material
 	mesh.position = at
 	_frame_layer.add_child(mesh)
+
+
+## Moldura cilíndrica entre dos puntos.
+func _add_rod(from: Vector3, to: Vector3, radius: float, material: Material) -> void:
+	var cylinder := CylinderMesh.new()
+	cylinder.top_radius = radius
+	cylinder.bottom_radius = radius
+	cylinder.height = from.distance_to(to)
+	cylinder.radial_segments = 12
+	cylinder.rings = 1
+	var mesh := MeshInstance3D.new()
+	mesh.mesh = cylinder
+	mesh.material_override = material
+	var axis := (to - from).normalized()
+	var side := axis.cross(Vector3.UP).normalized()
+	mesh.transform = Transform3D(Basis(side, axis, side.cross(axis)), (from + to) * 0.5)
+	_frame_layer.add_child(mesh)
+
+
+func _wood_material(color: Color, grain: Vector2) -> ShaderMaterial:
+	var material := ShaderMaterial.new()
+	material.shader = WOOD_SHADER
+	material.set_shader_parameter(&"base_color", color)
+	material.set_shader_parameter(&"grain_dir", grain)
+	material.set_shader_parameter(&"grain_scale", 1.0 / cell_size)
+	return material
 
 
 func _frame_material(color: Color, roughness: float, metallic: float) -> StandardMaterial3D:

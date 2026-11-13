@@ -102,6 +102,7 @@ piece.set_meta(&"board_pick_height", 0.8)   # en casillas
 | `get_cell(coord).custom_material = ...` | Material propio para una casilla (por ejemplo, una textura del bioma) |
 | `play_intro()` | Repite la animación de entrada (por ejemplo, al empezar un nivel) |
 | `spawn_effect(coord, color)` | Partículas y onda en una casilla |
+| `set_frame_glow(color, energía)` | Hace brillar el filete del marco (por ejemplo, según el bando que mueve o en rojo si hay jaque). Energía 0 lo apaga |
 
 Propiedades exportadas:
 
@@ -199,7 +200,7 @@ Para abrir la demo, abre `tests/board/board_demo.tscn` en el editor de Godot y e
 godot --path . res://tests/board/board_demo.tscn
 ```
 
-Controles (también hay botones en el panel):
+Controles (las acciones también están en la barra de abajo a la derecha del HUD):
 
 - Clic izquierdo: selecciona y mueve.
 - Clic derecho: bloquea una casilla.
@@ -209,6 +210,9 @@ Controles (también hay botones en el panel):
 - Espacio: paso del cazador.
 - C: catástrofe en una casilla al azar.
 - R: reinicia.
+- Esc: menú de pausa (continuar, cambiar de bioma, reiniciar o volver al menú principal).
+- Tab: abre o cierra el cajón de jugadas.
+- F1: menú de pruebas (cazador, catástrofe, rival automático).
 - Teclas 1–4: cambian de bioma (Páramo, Amazonía, Santuario, Clásico).
 
 La demo se juega con las reglas FIDE reales. El rival automático es provisional (la IA real es del módulo de simulación) y se puede apagar para mover ambos bandos.

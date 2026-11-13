@@ -11,6 +11,7 @@ extends Node3D
 ## escena tiene un método [code]start_level(nivel: int)[/code], el menú lo llama.
 
 const GAME_SCENE_PATH := "res://tests/board/board_demo.tscn"
+const UiStyle := preload("res://scripts/ui/ui_style.gd")
 
 ## Datos de cada nivel (documento de preproducción, sección 4.3).
 const LEVELS := [
@@ -64,9 +65,6 @@ Eres el Guardián del Bioma. Derrota a la fauna rival y, al mismo tiempo, manté
 Protege a tus frailejones: sin ellos el agua no alcanza para llegar al final."""
 
 const PANEL_WIDTH := 470.0
-const CREAM := Color("#f1ead8")
-const GOLD := Color("#d4b45a")
-const MUTED := Color(0.94, 0.92, 0.85, 0.62)
 const PIECE_SCALE := 1.3
 const CYCLE_SECONDS := 14.0
 
@@ -85,6 +83,9 @@ var _hunter: Node3D
 var _rng := RandomNumberGenerator.new()
 var _cycle_timer := 0.0
 var _hunter_timer := 0.0
+var _ui_root: Control
+var _subtitle: Label
+var _how_text: RichTextLabel
 
 
 func _ready() -> void:
@@ -147,6 +148,10 @@ func _set_theme(theme_name: StringName) -> void:
 	_theme_name = theme_name
 	board.board_theme = BoardTheme.create(theme_name)
 	environment.apply_preset(theme_name)
+	# La interfaz toma los colores del marco del tablero de este bioma.
+	UiStyle.apply(_ui_root.theme, board.board_theme)
+	_subtitle.add_theme_color_override("font_color", UiStyle.accent(board.board_theme))
+	_how_text.add_theme_color_override("default_color", UiStyle.text(board.board_theme))
 
 
 ## Cambia el bioma de fondo con un fundido breve.
@@ -239,11 +244,17 @@ func _quit() -> void:
 # ---------------------------------------------------------------------------
 
 func _build_ui() -> void:
+	_ui_root = Control.new()
+	_ui_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_ui_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ui_root.theme = UiStyle.build(BoardTheme.new())
+	ui_layer.add_child(_ui_root)
+
 	# Degradado oscuro a la izquierda para que el texto se lea sobre el paisaje.
 	var gradient := Gradient.new()
-	gradient.set_color(0, Color(0.02, 0.03, 0.02, 0.9))
+	gradient.set_color(0, Color(0.02, 0.03, 0.02, 0.88))
 	gradient.set_color(1, Color(0.0, 0.0, 0.0, 0.0))
-	gradient.add_point(0.45, Color(0.02, 0.03, 0.02, 0.7))
+	gradient.add_point(0.45, Color(0.02, 0.03, 0.02, 0.66))
 	var shade_texture := GradientTexture2D.new()
 	shade_texture.gradient = gradient
 	shade_texture.width = 256
@@ -255,14 +266,15 @@ func _build_ui() -> void:
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	shade.anchor_bottom = 1.0
 	shade.anchor_right = 0.75
-	ui_layer.add_child(shade)
+	_ui_root.add_child(shade)
 
 	var margin := MarginContainer.new()
 	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
 	margin.add_theme_constant_override("margin_left", 72)
-	margin.add_theme_constant_override("margin_top", 40)
+	margin.add_theme_constant_override("margin_top", 36)
 	margin.add_theme_constant_override("margin_bottom", 40)
-	ui_layer.add_child(margin)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ui_root.add_child(margin)
 
 	_screens[&"main"] = _build_main_screen()
 	_screens[&"levels"] = _build_levels_screen()
@@ -271,7 +283,7 @@ func _build_ui() -> void:
 	for key in _screens:
 		margin.add_child(_screens[key])
 
-	var footer := _label("ExpoSimu 2026 · Simulación por Computador", 12, MUTED)
+	var footer := _label("EXPOSIMU 2026 · SIMULACIÓN POR COMPUTADOR", &"Heading")
 	footer.autowrap_mode = TextServer.AUTOWRAP_OFF
 	footer.custom_minimum_size.x = 0
 	footer.anchor_top = 1.0
@@ -279,13 +291,14 @@ func _build_ui() -> void:
 	footer.offset_left = 72.0
 	footer.offset_top = -30.0
 	footer.offset_bottom = -12.0
-	ui_layer.add_child(footer)
+	footer.modulate.a = 0.75
+	_ui_root.add_child(footer)
 
 	_fade = ColorRect.new()
 	_fade.color = Color(0, 0, 0, 0)
 	_fade.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	ui_layer.add_child(_fade)
+	_ui_root.add_child(_fade)
 
 
 func _screen() -> VBoxContainer:
@@ -297,17 +310,32 @@ func _screen() -> VBoxContainer:
 	return box
 
 
+## Panel de vidrio esmerilado. Devuelve [panel, contenido].
+func _plaque(separation: int = 6) -> Array:
+	var panel := UiStyle.glass_panel(Color(1, 1, 1, 0.38), 16)
+	panel.custom_minimum_size.x = PANEL_WIDTH
+	panel.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", separation)
+	panel.add_child(box)
+	return [panel, box]
+
+
 func _build_main_screen() -> Control:
 	var box := _screen()
-	var title := _label("AJEDREZ\nSALVAJE", 74, CREAM)
-	title.add_theme_constant_override("line_spacing", -18)
-	title.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.55))
+	var title := _label("AJEDREZ\nSALVAJE", &"Display", 72)
+	title.add_theme_constant_override("line_spacing", -14)
+	title.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.6))
 	title.add_theme_constant_override("shadow_offset_x", 3)
 	title.add_theme_constant_override("shadow_offset_y", 4)
 	box.add_child(title)
-	box.add_child(_label("Biomas de Colombia", 24, GOLD))
-	box.add_child(_label("Estrategia por turnos sobre un ecosistema vivo: ajedrez, clima, agua y fauna simulados.", 15, MUTED))
-	box.add_child(_spacer(22))
+	_subtitle = _label("BIOMAS DE COLOMBIA", &"Heading", 15)
+	box.add_child(_subtitle)
+	var tagline := _label("Estrategia por turnos sobre un ecosistema vivo: ajedrez, clima, agua y fauna simulados.", &"")
+	tagline.add_theme_font_size_override("font_size", 15)
+	tagline.modulate.a = 0.8
+	box.add_child(tagline)
+	box.add_child(_spacer(18))
 	for entry in [["Jugar", _show_screen.bind(&"levels")], ["Cómo jugar", _show_screen.bind(&"how")],
 			["Créditos", _show_screen.bind(&"credits")], ["Salir", _quit]]:
 		var button := _menu_button(entry[0])
@@ -318,27 +346,30 @@ func _build_main_screen() -> Control:
 
 func _build_levels_screen() -> Control:
 	var box := _screen()
-	box.add_child(_label("Elige un bioma", 34, CREAM))
-	box.add_child(_label("Cada nivel usa los mismos modelos de simulación con parámetros distintos.", 14, MUTED))
-	box.add_child(_spacer(6))
+	box.add_child(_label("Elige un bioma", &"Display", 40))
+	box.add_child(_label("CADA NIVEL USA LOS MISMOS MODELOS CON PARÁMETROS DISTINTOS", &"Heading"))
+	box.add_child(_spacer(4))
 	for i in LEVELS.size():
 		box.add_child(_level_card(i))
-	box.add_child(_spacer(6))
+	box.add_child(_spacer(4))
 	var back := _menu_button("Volver")
 	back.pressed.connect(_show_screen.bind(&"main"))
 	box.add_child(back)
 	return box
 
 
-## Tarjeta de nivel: un contenedor que toma el alto de su texto, con un botón
-## detrás que recibe el clic y el foco del teclado.
+## Tarjeta de nivel: vidrio de fondo, un botón transparente que recibe el clic
+## y el foco del teclado, y el texto encima. Toma el alto de su texto.
 func _level_card(index: int) -> Control:
 	var level: Dictionary = LEVELS[index]
 	var card := MarginContainer.new()
 	card.custom_minimum_size.x = PANEL_WIDTH
+	var glass := UiStyle.glass_panel(Color(1, 1, 1, 0.3), 0)
+	glass.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(glass)
 	var button := Button.new()
+	button.theme_type_variation = &"CardButton"
 	button.focus_mode = Control.FOCUS_ALL
-	_style_button(button, Color(1, 1, 1, 0.06), Color(1, 1, 1, 0.12), 12)
 	button.mouse_entered.connect(_preview_theme.bind(level["theme"]))
 	button.focus_entered.connect(_preview_theme.bind(level["theme"]))
 	button.pressed.connect(start_level.bind(index + 1))
@@ -349,14 +380,14 @@ func _level_card(index: int) -> Control:
 	for side in ["left", "right"]:
 		padding.add_theme_constant_override("margin_" + side, 18)
 	for side in ["top", "bottom"]:
-		padding.add_theme_constant_override("margin_" + side, 12)
+		padding.add_theme_constant_override("margin_" + side, 11)
 	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", 2)
+	content.add_theme_constant_override("separation", 1)
 	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var rows := [[level["place"], 12, GOLD], [level["title"], 22, CREAM], [level["text"], 14, MUTED],
-			["Victoria: " + level["goal"], 14, Color("#b9d99a")]]
+	var rows := [[level["place"], &"Heading"], [level["title"], &"Title"], [level["text"], &"Muted"],
+			["Victoria: " + level["goal"], &"Good"]]
 	for row in rows:
-		var label := _label(row[0], row[1], row[2])
+		var label := _label(row[0], row[1])
 		label.custom_minimum_size.x = PANEL_WIDTH - 36.0
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		content.add_child(label)
@@ -367,22 +398,23 @@ func _level_card(index: int) -> Control:
 
 func _build_how_screen() -> Control:
 	var box := _screen()
-	box.add_child(_label("Cómo jugar", 34, CREAM))
+	box.add_child(_label("Cómo jugar", &"Display", 40))
+	var parts := _plaque()
+	box.add_child(parts[0])
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(PANEL_WIDTH, 380)
+	scroll.custom_minimum_size = Vector2(PANEL_WIDTH - 36.0, 360)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	var text := RichTextLabel.new()
-	text.bbcode_enabled = true
-	text.fit_content = true
-	text.scroll_active = false
-	text.custom_minimum_size.x = PANEL_WIDTH - 16.0
-	text.add_theme_font_size_override("normal_font_size", 15)
-	text.add_theme_font_size_override("bold_font_size", 15)
-	text.add_theme_color_override("default_color", Color(CREAM, 0.9))
-	text.add_theme_constant_override("line_separation", 3)
-	text.text = HOW_TO_PLAY
-	scroll.add_child(text)
-	box.add_child(scroll)
+	_how_text = RichTextLabel.new()
+	_how_text.bbcode_enabled = true
+	_how_text.fit_content = true
+	_how_text.scroll_active = false
+	_how_text.custom_minimum_size.x = PANEL_WIDTH - 52.0
+	_how_text.add_theme_font_size_override("normal_font_size", 15)
+	_how_text.add_theme_font_size_override("bold_font_size", 15)
+	_how_text.add_theme_constant_override("line_separation", 3)
+	_how_text.text = HOW_TO_PLAY
+	scroll.add_child(_how_text)
+	parts[1].add_child(scroll)
 	var back := _menu_button("Volver")
 	back.pressed.connect(_show_screen.bind(&"main"))
 	box.add_child(back)
@@ -391,31 +423,33 @@ func _build_how_screen() -> Control:
 
 func _build_credits_screen() -> Control:
 	var box := _screen()
-	box.add_child(_label("Créditos", 34, CREAM))
-	box.add_child(_label("Proyecto final de Simulación por Computador · ExpoSimu 2026", 14, MUTED))
-	box.add_child(_spacer(8))
+	box.add_child(_label("Créditos", &"Display", 40))
+	box.add_child(_label("PROYECTO FINAL DE SIMULACIÓN POR COMPUTADOR · EXPOSIMU 2026", &"Heading"))
+	var parts := _plaque(8)
+	box.add_child(parts[0])
 	for credit in CREDITS:
 		var row := VBoxContainer.new()
 		row.add_theme_constant_override("separation", 0)
-		row.add_child(_label("%s · %s" % [credit[0], credit[1]], 13, GOLD))
-		row.add_child(_label(credit[2], 20, CREAM))
-		box.add_child(row)
-	box.add_child(_spacer(8))
-	box.add_child(_label("Modelos: colas M/M/1, caminata aleatoria 2D, Monte Carlo, agentes y dinámica de sistemas.", 13, MUTED))
+		row.add_child(_label("%s · %s" % [credit[0], credit[1]], &"Muted"))
+		row.add_child(_label(credit[2], &"Title", 20))
+		parts[1].add_child(row)
+	parts[1].add_child(HSeparator.new())
+	parts[1].add_child(_label("Modelos: colas M/M/1, caminata aleatoria 2D, Monte Carlo, agentes y dinámica de sistemas.", &"Muted"))
 	var back := _menu_button("Volver")
 	back.pressed.connect(_show_screen.bind(&"main"))
 	box.add_child(back)
 	return box
 
 
-func _label(text: String, font_size: int, color: Color) -> Label:
+func _label(text: String, variation: StringName, font_size: int = 0) -> Label:
 	var label := Label.new()
 	label.text = text
+	label.theme_type_variation = variation
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	# Con ancho fijo desde el inicio, el salto de línea no infla la altura.
-	label.custom_minimum_size.x = PANEL_WIDTH
-	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_color", color)
+	label.custom_minimum_size.x = PANEL_WIDTH - 36.0
+	if font_size > 0:
+		label.add_theme_font_size_override("font_size", font_size)
 	return label
 
 
@@ -428,30 +462,9 @@ func _spacer(height: float) -> Control:
 func _menu_button(text: String) -> Button:
 	var button := Button.new()
 	button.text = text
+	button.theme_type_variation = &"BigButton"
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	button.custom_minimum_size = Vector2(300, 48)
+	button.custom_minimum_size = Vector2(300, 46)
 	button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	button.add_theme_font_size_override("font_size", 20)
-	_style_button(button, Color(1, 1, 1, 0.05), GOLD, 10)
+	button.add_theme_font_size_override("font_size", 19)
 	return button
-
-
-func _style_button(button: Button, normal: Color, highlight: Color, radius: int) -> void:
-	var states := {"normal": normal, "hover": highlight, "focus": highlight, "pressed": highlight.darkened(0.15)}
-	for state in states:
-		var box := StyleBoxFlat.new()
-		box.bg_color = states[state]
-		box.set_corner_radius_all(radius)
-		box.content_margin_left = 22
-		box.content_margin_right = 22
-		box.content_margin_top = 8
-		box.content_margin_bottom = 8
-		if state == "focus" or state == "hover":
-			box.border_color = Color(GOLD, 0.9)
-			box.set_border_width_all(2 if highlight != GOLD else 0)
-		button.add_theme_stylebox_override(state, box)
-	var dark_text := highlight == GOLD
-	button.add_theme_color_override("font_color", CREAM)
-	button.add_theme_color_override("font_hover_color", Color("#1d1a14") if dark_text else Color.WHITE)
-	button.add_theme_color_override("font_focus_color", Color("#1d1a14") if dark_text else Color.WHITE)
-	button.add_theme_color_override("font_pressed_color", Color("#1d1a14") if dark_text else Color.WHITE)
