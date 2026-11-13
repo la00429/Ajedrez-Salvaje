@@ -35,7 +35,7 @@ func _run(menu: Node) -> void:
 		menu._show_screen(screen_name)
 		var visible: Array = menu._screens.keys().filter(func(k): return menu._screens[k].visible)
 		_check(visible == [screen_name], "solo se ve la pantalla %s" % screen_name)
-	_check(menu.board.get_all_pieces().size() == 23, "el tablero de fondo tiene las 23 fichas")
+	_check(menu.board.get_all_pieces().size() == 33, "el tablero de fondo tiene las 32 piezas y el cazador")
 	_check(not menu.board.input_enabled, "el tablero de fondo no recibe clics")
 
 	print("- Vista previa de biomas")

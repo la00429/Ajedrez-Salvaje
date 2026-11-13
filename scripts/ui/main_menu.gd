@@ -11,7 +11,6 @@ extends Node3D
 ## escena tiene un método [code]start_level(nivel: int)[/code], el menú lo llama.
 
 const GAME_SCENE_PATH := "res://tests/board/board_demo.tscn"
-const DemoPiece := preload("res://tests/board/demo_piece_3d.gd")
 
 ## Datos de cada nivel (documento de preproducción, sección 4.3).
 const LEVELS := [
@@ -45,17 +44,20 @@ const HOW_TO_PLAY := """[color=#d4b45a][b]OBJETIVO[/b][/color]
 Eres el Guardián del Bioma. Derrota a la fauna rival y, al mismo tiempo, mantén vivo el ecosistema: si la reserva de agua llega a cero, el bioma colapsa y pierdes.
 
 [color=#d4b45a][b]LAS PIEZAS[/b][/color]
-• [b]Frailejón[/b] (peón, 8 por bando): retiene agua. Si cae, entra al vivero y vuelve a brotar.
-• [b]Venado de cola blanca[/b] (caballo, 2 por bando): salta en forma de L.
-• [b]Frailejón Gran Abuelo[/b] (rey): si cae, el bioma se pierde.
-• [b]Cazador furtivo[/b] (neutral): camina al azar y destruye lo que pisa.
+• [b]Frailejón[/b] (peón, 8): retiene agua. Si cae, entra al vivero y vuelve a brotar.
+• [b]Venado de cola blanca[/b] (caballo, 2): salta en forma de L.
+• [b]Cóndor andino[/b] (alfil, 2): vuela en diagonal.
+• [b]Oso de anteojos[/b] (torre, 2): avanza por filas y columnas.
+• [b]Danta de montaña[/b] (dama, 1): se mueve en todas las direcciones.
+• [b]Frailejón Gran Abuelo[/b] (rey, 1): si recibe jaque mate o lo alcanza el cazador, el bioma se pierde.
+• [b]Cazador furtivo[/b] (neutral): camina al azar y destruye lo que pisa. Bloquea el paso y no se puede capturar.
 
 [color=#d4b45a][b]CADA TURNO[/b][/color]
 1. [b]Clima[/b] (Monte Carlo): estable, lluvia, helada o catástrofe.
 2. [b]Agua[/b] (Dinámica de Sistemas): los frailejones aportan; la evaporación y el consumo restan.
 3. [b]Vivero[/b] (cola M/M/1): las plantas germinan si el agua supera el 30%.
 4. [b]Cazador[/b] (caminata aleatoria 2D): da un paso al norte, sur, este u oeste.
-5. [b]Tu jugada[/b]: mueves UNA pieza con las reglas del ajedrez.
+5. [b]Tu jugada[/b]: mueves UNA pieza con las reglas del ajedrez FIDE (incluye enroque, captura al paso y coronación).
 6. [b]Rival[/b] (agentes): sus piezas reaccionan a lo que tienen cerca.
 
 [color=#d4b45a][b]CONSEJO[/b][/color]
@@ -159,24 +161,10 @@ func _preview_theme(theme_name: StringName) -> void:
 
 
 func _setup_pieces() -> void:
-	for x in Board.SIZE:
-		_spawn(0, &"pawn", Vector2i(x, 1))
-		_spawn(1, &"pawn", Vector2i(x, 6))
-	for x in [1, 6]:
-		_spawn(0, &"knight", Vector2i(x, 0))
-		_spawn(1, &"knight", Vector2i(x, 7))
-	_spawn(0, &"king", Vector2i(4, 0))
-	_spawn(1, &"king", Vector2i(4, 7))
-	_hunter = _spawn(-1, &"hunter", Vector2i(3, 3))
-
-
-func _spawn(side: int, kind: StringName, coord: Vector2i) -> Node3D:
-	var piece := DemoPiece.new()
-	piece.side = side
-	piece.kind = kind
-	piece.scale = Vector3.ONE * PIECE_SCALE
-	board.place_piece(piece, coord)
-	return piece
+	ChessMatch.new(board).setup_initial(ChessPosition.START_FEN, PIECE_SCALE)
+	_hunter = ChessPiece.create(ChessPiece.Kind.HUNTER, ChessPiece.Team.NEUTRAL)
+	_hunter.scale = Vector3.ONE * PIECE_SCALE
+	board.place_piece(_hunter, Vector2i(3, 3))
 
 
 ## El cazador pasea por casillas libres (sin destruir nada en el menú).
