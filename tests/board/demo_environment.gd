@@ -100,8 +100,9 @@ func _build_paramo() -> void:
 	_add_mist(4.5, Color("#f2f5f2"), 0.5, 0.035, 14.0, 90.0, 0.42)
 	_add_clouds(Color("#f5f7f6"), 0.85)
 	_add_particles(&"mist")
-	_add_bird(&"condor", 9.5, 7.5, 0.16, 0.0)
-	_add_bird(&"condor", 13.0, 9.5, -0.12, 0.45)
+	# Vuelan por encima de la cámara de juego: en partida solo pasa su sombra.
+	_add_bird(&"condor", 11.0, 18.0, 0.13, 0.0)
+	_add_bird(&"condor", 15.0, 21.0, -0.1, 0.45)
 
 
 ## Amazonía: río, selva densa, palmas de cera, claro deforestado y guacamayas.
@@ -180,7 +181,7 @@ func _build_santuario() -> void:
 	_add_particles(&"embers")
 	_add_particles(&"ash")
 	for i in 4:
-		_add_bird(&"vulture", 8.0 + i * 1.3, 6.0 + i * 0.6, 0.2 * (1.0 if i < 2 else -1.0), i * 0.25)
+		_add_bird(&"vulture", 9.0 + i * 1.5, 16.0 + i * 1.2, 0.16 * (1.0 if i < 2 else -1.0), i * 0.25)
 
 
 ## Clásico: estudio oscuro y sobrio, sin vegetación.
