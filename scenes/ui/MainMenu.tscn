@@ -1,0 +1,20 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/main_menu.gd" id="1_menu"]
+[ext_resource type="Script" path="res://tests/board/demo_environment.gd" id="2_env"]
+[ext_resource type="PackedScene" path="res://scenes/board/Board.tscn" id="3_board"]
+
+[node name="MainMenu" type="Node3D"]
+script = ExtResource("1_menu")
+
+[node name="Environment" type="Node3D" parent="."]
+script = ExtResource("2_env")
+
+[node name="Board" parent="." instance=ExtResource("3_board")]
+input_enabled = false
+
+[node name="Camera3D" type="Camera3D" parent="."]
+fov = 40.0
+current = true
+
+[node name="UI" type="CanvasLayer" parent="."]

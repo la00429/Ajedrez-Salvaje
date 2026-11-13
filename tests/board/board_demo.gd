@@ -11,17 +11,21 @@ extends Node3D
 ## es del módulo de simulación.
 
 const DemoPiece := preload("res://tests/board/demo_piece_3d.gd")
+const MENU_SCENE := "res://scenes/ui/MainMenu.tscn"
 
 const PLAYER := 0
 const RIVAL := 1
 const NEUTRAL := -1
 const PANEL_WIDTH := 360.0
 const MARGIN := 24.0
-const MAX_EVENTS := 5
+const MAX_EVENTS := 4
 const PIECE_SCALE := 1.3
 
 const CREAM := Color("#f1ead8")
 const MUTED := Color(0.94, 0.92, 0.85, 0.6)
+
+## Bioma con el que arranca la demo (lo asigna el menú principal).
+@export var initial_theme: StringName = &""
 
 @onready var board: Board = $Board
 @onready var camera: Camera3D = $Camera3D
@@ -65,6 +69,8 @@ func _ready() -> void:
 	board.cell_blocked_changed.connect(_on_cell_blocked_changed)
 	get_viewport().size_changed.connect(_layout)
 
+	if initial_theme != &"":
+		_theme_name = initial_theme
 	var args := OS.get_cmdline_user_args()
 	for arg in args:
 		if arg.begins_with("--theme="):
@@ -112,6 +118,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				_rotate_camera(PI / 8.0)
 			KEY_V:
 				_toggle_panorama()
+			KEY_ESCAPE:
+				_go_to_menu()
 			KEY_1, KEY_2, KEY_3, KEY_4:
 				_set_theme(BoardTheme.PRESETS[event.keycode - KEY_1])
 
@@ -179,6 +187,12 @@ func _layout() -> void:
 	_update_camera()
 	_panel.position = Vector2(viewport.x - PANEL_WIDTH - MARGIN, MARGIN)
 	_panel.size = Vector2(PANEL_WIDTH, viewport.y - MARGIN * 2.0)
+
+
+## Vuelve al menú principal (si existe en el proyecto).
+func _go_to_menu() -> void:
+	if ResourceLoader.exists(MENU_SCENE):
+		get_tree().change_scene_to_file(MENU_SCENE)
 
 
 # ---------------------------------------------------------------------------
@@ -419,6 +433,11 @@ func _build_ui() -> void:
 		button.pressed.connect(entry[1])
 		actions.add_child(button)
 	box.add_child(actions)
+	if ResourceLoader.exists(MENU_SCENE):
+		var menu := _button("Menú principal")
+		menu.tooltip_text = "Tecla Esc"
+		menu.pressed.connect(_go_to_menu)
+		box.add_child(menu)
 	box.add_child(_separator())
 
 	_square_label = _label("—", 22, CREAM)
@@ -432,7 +451,7 @@ func _build_ui() -> void:
 	_events_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(_events_label)
 
-	box.add_child(_label("Clic derecho: bloquear · Q/E o arrastrar con la rueda: girar · Rueda: zoom · V: vista panorámica\nFichas de relleno (las piezas reales son del módulo de piezas)", 11, MUTED))
+	box.add_child(_label("Clic der.: bloquear · Q/E: girar · Rueda: zoom · V: panorámica · Esc: menú\nFichas de relleno: las piezas reales son del módulo de piezas.", 11, MUTED))
 	_set_theme(_theme_name)
 
 
