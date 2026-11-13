@@ -142,7 +142,7 @@ if captured:
     captured.queue_free()                # o enviarlo al vivero si es un peón
 ```
 
-Para calcular movimientos, el validador consulta `Board.is_inside()`, `board.get_piece_at()` y, si el equipo lo decide, `board.is_blocked()`. Después los muestra con `board.highlight_cells(moves, Cell.Highlight.MOVE)`. Las piezas son escenas `Node3D` con el origen en la base. En `tests/board/demo_piece_3d.gd` hay modelos de ejemplo (frailejón, venado, Gran Abuelo y cazador) hechos por código, por si sirven.
+Para calcular movimientos, el validador consulta `Board.is_inside()`, `board.get_piece_at()` y, si el equipo lo decide, `board.is_blocked()`. Después los muestra con `board.highlight_cells(moves, Cell.Highlight.MOVE)`. Las piezas son `ChessPiece` (`Node3D` con el origen en la base). Las reglas y la conexión con el tablero (`ChessMatch`) están documentadas en `docs/integrantes/integrante_2_piezas.md`.
 
 **Simulación (Integrante 3): cazador y vivero.**
 
@@ -211,7 +211,7 @@ Controles (también hay botones en el panel):
 - R: reinicia.
 - Teclas 1–4: cambian de bioma (Páramo, Amazonía, Santuario, Clásico).
 
-Las fichas de la demo son de relleno y se mueven como un rey. **No son las reglas reales.**
+La demo se juega con las reglas FIDE reales. El rival automático es provisional (la IA real es del módulo de simulación) y se puede apagar para mover ambos bandos.
 
 Al abrir la demo, la cámara hace una entrada cinematográfica: parte de una vista panorámica y baja hasta el tablero (`-- --no-intro` la omite). Cada bioma tiene su propio entorno:
 

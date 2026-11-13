@@ -1,28 +1,33 @@
 extends Node3D
-## Demo interactiva del módulo de tablero 3D (Integrante 1).
+## Demo jugable del tablero 3D con las reglas de ajedrez.
 ##
 ## Abrir tests/board/board_demo.tscn en el editor de Godot y ejecutar la escena
 ## actual: F6 en Windows/Linux, Cmd+R en macOS. Desde la terminal:
 ##   godot --path . res://tests/board/board_demo.tscn
 ##
-## Las fichas son de relleno y se mueven como un rey (una casilla en cualquier
-## dirección) solo para probar el tablero. Las reglas reales de ajedrez son
-## del módulo de piezas, y la caminata real del cazador (generador de Lehmer)
-## es del módulo de simulación.
+## Se juega ajedrez FIDE completo con las piezas del juego (tablero, piezas y
+## reglas). Lo que todavía es provisional:
+## - El rival automático elige jugadas con una regla simple (capturar lo de
+##   más valor). La IA real (agentes ABM) es del módulo de simulación.
+## - El cazador se mueve con el botón o la tecla Espacio, con azar simple; la
+##   caminata real (generador de Lehmer) y las fases del turno son de los
+##   módulos de simulación e integración.
+## - Las piezas capturadas se descartan; el vivero (cola M/M/1) es de simulación.
 
-const DemoPiece := preload("res://tests/board/demo_piece_3d.gd")
 const MENU_SCENE := "res://scenes/ui/MainMenu.tscn"
 
-const PLAYER := 0
-const RIVAL := 1
-const NEUTRAL := -1
 const PANEL_WIDTH := 360.0
 const MARGIN := 24.0
-const MAX_EVENTS := 4
+const MAX_EVENTS := 3
 const PIECE_SCALE := 1.3
+const RIVAL_DELAY := 0.75
+## Valor de las piezas para el rival provisional.
+const VALUES := {1: 1.0, 2: 3.0, 3: 3.2, 4: 5.0, 5: 9.0, 6: 100.0, 16: 0.5}
 
 const CREAM := Color("#f1ead8")
 const MUTED := Color(0.94, 0.92, 0.85, 0.6)
+const GOLD := Color("#d4b45a")
+const ALERT := Color("#ff8a6a")
 
 ## Bioma con el que arranca la demo (lo asigna el menú principal).
 @export var initial_theme: StringName = &""
@@ -32,13 +37,19 @@ const MUTED := Color(0.94, 0.92, 0.85, 0.6)
 @onready var environment: Node3D = $Environment
 @onready var ui_layer: CanvasLayer = $UI
 
+var _match: ChessMatch
 var _selected := Board.INVALID
 var _hovered := Board.INVALID
 var _last_move: Array[Vector2i] = []
-var _hunter: Node3D
+var _hunter: ChessPiece
 var _events: PackedStringArray = []
 var _theme_name: StringName = &"paramo"
 var _rng := RandomNumberGenerator.new()
+var _auto_rival := true
+var _game_over := false
+var _game_token := 0
+## Posición inicial (se puede cambiar con el argumento --fen="...").
+var _start_fen := ChessPosition.START_FEN
 
 # Cámara orbital alrededor del centro del tablero.
 const PLAY_VIEW := Vector3(0.0, 50.0, 17.0) # giro, inclinación (grados), distancia
@@ -52,20 +63,21 @@ var _camera_tween: Tween
 
 var _panel: PanelContainer
 var _biome_label: Label
+var _status_label: Label
 var _square_label: Label
 var _detail_label: Label
 var _events_label: Label
 var _theme_buttons: Dictionary = {}
+var _rival_button: Button
 
 
 func _ready() -> void:
 	get_viewport().msaa_3d = Viewport.MSAA_4X
+	_rng.randomize()
 	_build_ui()
 	board.cell_clicked.connect(_on_cell_clicked)
 	board.cell_right_clicked.connect(_on_cell_right_clicked)
 	board.cell_hovered.connect(_on_cell_hovered)
-	board.piece_moved.connect(_on_piece_moved)
-	board.piece_removed.connect(_on_piece_removed)
 	board.cell_blocked_changed.connect(_on_cell_blocked_changed)
 	get_viewport().size_changed.connect(_layout)
 
@@ -81,6 +93,8 @@ func _ready() -> void:
 			_distance = arg.trim_prefix("--distance=").to_float()
 		elif arg.begins_with("--pitch="):
 			_pitch = deg_to_rad(arg.trim_prefix("--pitch=").to_float())
+		elif arg.begins_with("--fen="):
+			_start_fen = arg.trim_prefix("--fen=")
 	camera.fov = 40.0
 	_set_theme(_theme_name)
 	_layout()
@@ -196,56 +210,52 @@ func _go_to_menu() -> void:
 
 
 # ---------------------------------------------------------------------------
-# Partida de demostración
+# Partida
 # ---------------------------------------------------------------------------
 
 func _reset() -> void:
-	board.clear_pieces()
+	_game_token += 1
+	_game_over = false
 	board.clear_blocked()
-	board.clear_highlights()
 	_selected = Board.INVALID
 	_last_move.clear()
+	_match = ChessMatch.new(board)
+	_match.setup_initial(_start_fen, PIECE_SCALE)
+	_hunter = ChessPiece.create(ChessPiece.Kind.HUNTER, ChessPiece.Team.NEUTRAL)
+	_hunter.scale = Vector3.ONE * PIECE_SCALE
+	if not board.place_piece(_hunter, Board.algebraic_to_coord("d4")):
+		_hunter.free()
+		_hunter = null
+	_match.sync()
 	_events.clear()
-	# Conjunto reducido del documento (sección 4.2): 8 peones, 2 caballos y 1 rey por bando.
-	for x in Board.SIZE:
-		_spawn(PLAYER, &"pawn", Vector2i(x, 1))
-		_spawn(RIVAL, &"pawn", Vector2i(x, 6))
-	for square in ["b1", "g1"]:
-		_spawn(PLAYER, &"knight", Board.algebraic_to_coord(square))
-	for square in ["b8", "g8"]:
-		_spawn(RIVAL, &"knight", Board.algebraic_to_coord(square))
-	_spawn(PLAYER, &"king", Board.algebraic_to_coord("e1"))
-	_spawn(RIVAL, &"king", Board.algebraic_to_coord("e8"))
-	_hunter = _spawn(NEUTRAL, &"hunter", Board.algebraic_to_coord("d4"))
-	_log("Tablero listo: cazador en d4")
-	_update_info()
+	_log("Partida nueva: juegas con marfil." + (" Cazador en d4." if _hunter else ""))
+	_refresh_state()
 
 
-func _spawn(side: int, kind: StringName, coord: Vector2i) -> Node3D:
-	var piece := DemoPiece.new()
-	piece.side = side
-	piece.kind = kind
-	piece.scale = Vector3.ONE * PIECE_SCALE
-	board.place_piece(piece, coord)
-	return piece
+func _can_control(side: int) -> bool:
+	return side == ChessPiece.Team.PLAYER or not _auto_rival
 
 
 func _on_cell_clicked(coord: Vector2i) -> void:
-	var kind := board.get_highlight(coord)
-	var piece = board.get_piece_at(coord)
-	if _selected != Board.INVALID and (kind == Cell.Highlight.MOVE or kind == Cell.Highlight.CAPTURE):
-		_move(_selected, coord)
-		_deselect()
-	elif piece and piece != _hunter and coord != _selected:
+	if _game_over:
+		return
+	var highlight := board.get_highlight(coord)
+	if _selected != Board.INVALID and (highlight == Cell.Highlight.MOVE or highlight == Cell.Highlight.CAPTURE):
+		var move := _match.find_move(_selected, coord)
+		if move:
+			_play(move)
+		return
+	var piece := board.get_piece_at(coord) as ChessPiece
+	if piece and piece.side == _match.side_to_move() and _can_control(piece.side) and coord != _selected:
 		_select(coord)
 	else:
-		_deselect()
-	_update_info()
+		_selected = Board.INVALID
+		_refresh_state()
 
 
 func _on_cell_right_clicked(coord: Vector2i) -> void:
 	board.set_blocked(coord, not board.is_blocked(coord))
-	_update_info()
+	_after_board_change()
 
 
 func _on_cell_hovered(coord: Vector2i) -> void:
@@ -254,52 +264,80 @@ func _on_cell_hovered(coord: Vector2i) -> void:
 
 
 func _select(coord: Vector2i) -> void:
-	_deselect()
 	_selected = coord
-	var piece = board.get_piece_at(coord)
+	_refresh_state()
 	board.set_highlight(coord, Cell.Highlight.SELECTED)
-	# Movimiento de demostración (como un rey), NO son reglas de ajedrez reales.
-	for target in Board.get_moore_neighborhood(coord, 1):
-		if board.is_blocked(target):
-			continue
-		var other = board.get_piece_at(target)
-		if other == null:
-			board.set_highlight(target, Cell.Highlight.MOVE)
-		elif other.side != piece.side:
-			board.set_highlight(target, Cell.Highlight.CAPTURE)
+	for move in _match.legal_moves_from(coord):
+		board.set_highlight(move.to_coord(), Cell.Highlight.CAPTURE if move.is_capture() else Cell.Highlight.MOVE)
 
 
-func _deselect() -> void:
-	_selected = Board.INVALID
-	board.clear_highlights()
-	board.highlight_cells(_last_move, Cell.Highlight.LAST_MOVE)
-	_update_check()
-
-
-func _move(from: Vector2i, to: Vector2i) -> void:
-	var captured = board.remove_piece(to)
+## Ejecuta una jugada legal (las coronaciones son a dama).
+func _play(move: ChessMove) -> void:
+	var mover := _match.side_to_move()
+	var captured := _match.play(move)
+	var text := move.notation()
 	if captured:
+		text += "  (%s capturado)" % captured.species_name()
 		if captured == _hunter:
 			_hunter = null
 		captured.queue_free()
-	board.move_piece(from, to)
-	_last_move = [from, to]
+	match _match.status():
+		MovementValidator.Status.CHECKMATE:
+			text += "#"
+		MovementValidator.Status.CHECK:
+			text += "+"
+	_log("%s: %s" % ["Tú" if mover == ChessPiece.Team.PLAYER else "Rival", text])
+	_last_move = [move.from_coord(), move.to_coord()]
+	_selected = Board.INVALID
+	_refresh_state()
+	_schedule_rival()
+
+
+func _schedule_rival() -> void:
+	if _game_over or not _auto_rival or _match.side_to_move() != ChessPiece.Team.RIVAL:
+		return
+	var token := _game_token
+	await get_tree().create_timer(RIVAL_DELAY).timeout
+	if token == _game_token and not _game_over and _auto_rival and _match.side_to_move() == ChessPiece.Team.RIVAL:
+		_rival_move()
+
+
+## Rival PROVISIONAL: captura lo de más valor y si no, mueve al azar.
+## La IA real (agentes ABM, vecindad de Moore de radio 2) es del integrante 3.
+func _rival_move() -> void:
+	var moves := _match.legal_moves()
+	if moves.is_empty():
+		return
+	var best: ChessMove = null
+	var best_score := -INF
+	for move in moves:
+		var score: float = VALUES.get(ChessPosition.kind_of(move.captured), 0.0) + _rng.randf() * 0.6
+		if move.promotion == MovementValidator.QUEEN:
+			score += 8.0
+		if score > best_score:
+			best_score = score
+			best = move
+	_play(best)
 
 
 func _hunter_step() -> void:
-	if _hunter == null:
-		_log("El cazador ya no está en el tablero")
-		_update_info()
+	if _game_over:
+		return
+	if _hunter == null or board.find_piece(_hunter) == Board.INVALID:
+		_log("El cazador ya no está en el tablero.")
 		return
 	var from := board.find_piece(_hunter)
 	var options := Board.get_orthogonal_neighbors(from)
 	var to: Vector2i = options[_rng.randi() % options.size()]
-	if board.is_occupied(to):
+	var victim := board.get_piece_at(to) as ChessPiece
+	if victim:
+		_log("¡El cazador destruyó %s en %s!" % [victim.display_name(), Board.coord_to_algebraic(to)])
 		board.destroy_piece(to)
+	else:
+		_log("Cazador: %s → %s" % [Board.coord_to_algebraic(from), Board.coord_to_algebraic(to)])
 	board.move_piece(from, to)
 	_last_move = [from, to]
-	_deselect()
-	_update_info()
+	_after_board_change()
 
 
 func _random_catastrophe() -> void:
@@ -307,45 +345,61 @@ func _random_catastrophe() -> void:
 	if candidates.is_empty():
 		return
 	board.set_blocked(candidates[_rng.randi() % candidates.size()])
+	_after_board_change()
+
+
+## Tras un cambio externo (cazador, catástrofe) las reglas releen el tablero.
+func _after_board_change() -> void:
+	_match.sync()
+	_selected = Board.INVALID
+	_refresh_state()
+	_schedule_rival()
+
+
+## Redibuja resaltados (última jugada, jaque) y el estado de la partida.
+func _refresh_state() -> void:
+	board.clear_highlights()
+	board.highlight_cells(_last_move, Cell.Highlight.LAST_MOVE)
+	var status := _match.status()
+	var side := _match.side_to_move()
+	if status == MovementValidator.Status.CHECK or status == MovementValidator.Status.CHECKMATE:
+		var king := _match.position.find_king(side)
+		if king >= 0:
+			board.set_highlight(ChessPosition.to_coord(king), Cell.Highlight.CHECK)
+	var player_turn := side == ChessPiece.Team.PLAYER
+	var color := CREAM
+	var text := ""
+	match status:
+		MovementValidator.Status.CHECKMATE:
+			_game_over = true
+			text = "Jaque mate: ¡ganaste!" if not player_turn else "Jaque mate: gana el rival"
+			color = GOLD
+		MovementValidator.Status.STALEMATE:
+			_game_over = true
+			text = "Ahogado: tablas"
+			color = GOLD
+		MovementValidator.Status.KING_LOST:
+			_game_over = true
+			var winner := _match.winner()
+			text = "El cazador acabó con un rey: %s" % ("¡ganaste!" if winner == ChessPiece.Team.PLAYER else "gana el rival")
+			color = GOLD
+		MovementValidator.Status.CHECK:
+			text = "¡Jaque! Protege a tu rey" if player_turn else "¡Jaque al rey rival!"
+			color = ALERT
+		_:
+			text = "Tu turno (marfil)" if player_turn else "Turno del rival (ébano)…"
+	if _game_over:
+		text += "  ·  R para reiniciar"
+	_status_label.text = text
+	_status_label.add_theme_color_override("font_color", color)
 	_update_info()
-
-
-## Demo: marca en jaque al rey que tenga una ficha rival adyacente.
-func _update_check() -> void:
-	for piece in board.get_all_pieces():
-		if piece.kind != &"king":
-			continue
-		var coord := board.find_piece(piece)
-		for neighbor in Board.get_moore_neighborhood(coord, 1):
-			var other = board.get_piece_at(neighbor)
-			if other and other.side != NEUTRAL and other.side != piece.side:
-				board.set_highlight(coord, Cell.Highlight.CHECK)
-				break
-
-
-# ---------------------------------------------------------------------------
-# Registro de eventos (escucha las señales del tablero)
-# ---------------------------------------------------------------------------
-
-func _on_piece_moved(piece: Node3D, from: Vector2i, to: Vector2i) -> void:
-	_log("%s  %s → %s" % [_describe(piece), Board.coord_to_algebraic(from), Board.coord_to_algebraic(to)])
-
-
-func _on_piece_removed(piece: Node3D, coord: Vector2i) -> void:
-	_log("%s retirado de %s" % [_describe(piece), Board.coord_to_algebraic(coord)])
 
 
 func _on_cell_blocked_changed(coord: Vector2i, blocked: bool) -> void:
 	if blocked:
-		_log("Catástrofe en %s: casilla intransitable" % Board.coord_to_algebraic(coord))
+		_log("Catástrofe en %s: casilla intransitable." % Board.coord_to_algebraic(coord))
 	else:
-		_log("%s vuelve a ser transitable" % Board.coord_to_algebraic(coord))
-
-
-func _describe(piece: Node3D) -> String:
-	if piece.side == NEUTRAL:
-		return piece.display_name()
-	return "%s %s" % [piece.display_name(), "(jugador)" if piece.side == PLAYER else "(rival)"]
+		_log("%s vuelve a ser transitable." % Board.coord_to_algebraic(coord))
 
 
 func _log(text: String) -> void:
@@ -354,6 +408,13 @@ func _log(text: String) -> void:
 		_events.resize(MAX_EVENTS)
 	if _events_label:
 		_events_label.text = "\n".join(_events)
+
+
+func _toggle_auto_rival(enabled: bool) -> void:
+	_auto_rival = enabled
+	_selected = Board.INVALID
+	_refresh_state()
+	_schedule_rival()
 
 
 # ---------------------------------------------------------------------------
@@ -388,7 +449,7 @@ func _build_ui() -> void:
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.06, 0.07, 0.06, 0.8)
 	style.set_corner_radius_all(16)
-	style.set_content_margin_all(22)
+	style.set_content_margin_all(20)
 	style.border_color = Color(1, 1, 1, 0.08)
 	style.set_border_width_all(1)
 	style.shadow_color = Color(0, 0, 0, 0.35)
@@ -401,12 +462,13 @@ func _build_ui() -> void:
 	box.add_theme_constant_override("separation", 6)
 	_panel.add_child(box)
 
-	box.add_child(_label("AJEDREZ SALVAJE", 28, CREAM))
-	_biome_label = _label(_biome_subtitle(_theme_name), 15, Color("#d4b45a"))
+	box.add_child(_label("AJEDREZ SALVAJE", 26, CREAM))
+	_biome_label = _label(_biome_subtitle(_theme_name), 14, GOLD)
 	box.add_child(_biome_label)
+	_status_label = _label("", 18, CREAM)
+	box.add_child(_status_label)
 	box.add_child(_separator())
 
-	box.add_child(_label("BIOMA", 12, MUTED))
 	var themes := HBoxContainer.new()
 	themes.add_theme_constant_override("separation", 6)
 	var group := ButtonGroup.new()
@@ -415,43 +477,48 @@ func _build_ui() -> void:
 		var button := _button(BoardTheme.create(preset).display_name)
 		button.toggle_mode = true
 		button.button_group = group
-		button.tooltip_text = "Tecla %d" % (i + 1)
+		button.tooltip_text = "Bioma (tecla %d)" % (i + 1)
 		button.pressed.connect(_set_theme.bind(preset))
 		themes.add_child(button)
 		_theme_buttons[preset] = button
 	box.add_child(themes)
 
-	box.add_child(_label("ACCIONES", 12, MUTED))
 	var actions := GridContainer.new()
 	actions.columns = 2
 	actions.add_theme_constant_override("h_separation", 6)
 	actions.add_theme_constant_override("v_separation", 6)
-	for entry in [["Cazador", _hunter_step, "Espacio"], ["Catástrofe", _random_catastrophe, "C"],
+	for entry in [["Paso del cazador", _hunter_step, "Espacio"], ["Catástrofe", _random_catastrophe, "C"],
 			["Vista panorámica", _toggle_panorama, "V"], ["Reiniciar", _reset, "R"]]:
 		var button := _button(entry[0])
 		button.tooltip_text = "Tecla " + entry[2]
 		button.pressed.connect(entry[1])
 		actions.add_child(button)
-	box.add_child(actions)
+	_rival_button = _button("Rival automático")
+	_rival_button.toggle_mode = true
+	_rival_button.button_pressed = _auto_rival
+	_rival_button.tooltip_text = "Provisional: la IA real (agentes) es del módulo de simulación.\nApagado: mueves ambos bandos."
+	_rival_button.toggled.connect(_toggle_auto_rival)
+	actions.add_child(_rival_button)
 	if ResourceLoader.exists(MENU_SCENE):
 		var menu := _button("Menú principal")
 		menu.tooltip_text = "Tecla Esc"
 		menu.pressed.connect(_go_to_menu)
-		box.add_child(menu)
+		actions.add_child(menu)
+	box.add_child(actions)
 	box.add_child(_separator())
 
-	_square_label = _label("—", 22, CREAM)
+	_square_label = _label("—", 20, CREAM)
 	box.add_child(_square_label)
 	_detail_label = _label("", 14, MUTED)
 	box.add_child(_detail_label)
 	box.add_child(_separator())
 
-	box.add_child(_label("EVENTOS DEL TABLERO", 12, MUTED))
+	box.add_child(_label("JUGADAS Y EVENTOS", 12, MUTED))
 	_events_label = _label("", 13, Color(CREAM, 0.85))
 	_events_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(_events_label)
 
-	box.add_child(_label("Clic der.: bloquear · Q/E: girar · Rueda: zoom · V: panorámica · Esc: menú\nFichas de relleno: las piezas reales son del módulo de piezas.", 11, MUTED))
+	box.add_child(_label("Clic der.: bloquear · Q/E: girar · Rueda: zoom · Esc: menú", 11, MUTED))
 	_set_theme(_theme_name)
 
 
@@ -460,7 +527,7 @@ func _label(text: String, font_size: int, color: Color) -> Label:
 	label.text = text
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	# Con ancho fijo desde el inicio, el salto de línea no infla la altura del panel.
-	label.custom_minimum_size.x = PANEL_WIDTH - 44.0
+	label.custom_minimum_size.x = PANEL_WIDTH - 40.0
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", color)
 	return label
@@ -482,14 +549,14 @@ func _button(text: String) -> Button:
 	button.add_theme_font_size_override("font_size", 13)
 	var states := {
 		"normal": Color(1, 1, 1, 0.06), "hover": Color(1, 1, 1, 0.14),
-		"pressed": Color("#d4b45a"), "hover_pressed": Color("#e0c46c"),
+		"pressed": GOLD, "hover_pressed": Color("#e0c46c"),
 	}
 	for state in states:
 		var box := StyleBoxFlat.new()
 		box.bg_color = states[state]
 		box.set_corner_radius_all(8)
-		box.content_margin_top = 7
-		box.content_margin_bottom = 7
+		box.content_margin_top = 6
+		box.content_margin_bottom = 6
 		box.content_margin_left = 6
 		box.content_margin_right = 6
 		button.add_theme_stylebox_override(state, box)
@@ -506,35 +573,46 @@ func _update_info() -> void:
 	var focus := _hovered if _hovered != Board.INVALID else _selected
 	if focus == Board.INVALID:
 		_square_label.text = "Pasa el cursor por el tablero"
-		_detail_label.text = "%d fichas en juego · %d casillas bloqueadas" % [
+		_detail_label.text = "%d piezas en juego · %d casillas bloqueadas" % [
 				board.get_all_pieces().size(), board.get_blocked_coords().size()]
 		return
-	var piece = board.get_piece_at(focus)
+	var piece := board.get_piece_at(focus) as ChessPiece
 	_square_label.text = "Casilla %s" % Board.coord_to_algebraic(focus).to_upper()
 	var lines: PackedStringArray = []
-	lines.append(_describe(piece) if piece else "Vacía")
-	lines.append("Casilla %s%s" % ["clara" if Board.is_light_square(focus) else "oscura",
-			" · intransitable" if board.is_blocked(focus) else ""])
-	if _hunter:
+	if piece:
+		var chess: String = ChessPiece.CHESS_NAMES.get(piece.kind, "")
+		lines.append("%s · %s" % [piece.display_name(), chess] if piece.kind != ChessPiece.Kind.HUNTER else piece.display_name())
+	else:
+		lines.append("Vacía" + (" · intransitable" if board.is_blocked(focus) else ""))
+	if _hunter and board.find_piece(_hunter) != Board.INVALID:
 		lines.append("Distancia Manhattan al cazador: %d" % Board.manhattan_distance(focus, board.find_piece(_hunter)))
 	_detail_label.text = "\n".join(lines)
 
 
-## Escena fija para capturas de pantalla (argumento --demo-shot).
+## Escena fija para capturas: la partida de ejemplo del documento (sección 5),
+## con el cazador en su recorrido d4 → c4 → c5 → d5 → e5.
 func _play_screenshot_scene() -> void:
-	var saved := board.move_duration
+	var saved_duration := board.move_duration
+	var saved_rival := _auto_rival
 	board.move_duration = 0.0
-	var sq := Board.algebraic_to_coord
-	board.move_piece(sq.call("d4"), sq.call("e4")) # cazador
-	_move(sq.call("e2"), sq.call("e3"))
-	_move(sq.call("d7"), sq.call("d6"))
-	board.move_piece(sq.call("b1"), sq.call("d7")) # venado junto al rey rival -> jaque
-	_move(sq.call("d6"), sq.call("d5"))
-	_move(sq.call("d5"), sq.call("d4"))
-	board.set_blocked(sq.call("c5"))
-	board.set_blocked(sq.call("g4"))
-	_select(sq.call("e3"))
-	board.move_duration = saved
-	_hovered = sq.call("e4")
+	_auto_rival = false
+	var steps := [["hunter", "c4"], ["e2", "e4"], ["e7", "e5"], ["hunter", "c5"], ["g1", "f3"], ["b8", "c6"],
+			["hunter", "d5"], ["f1", "c4"], ["d7", "d6"], ["hunter", "e5"], ["d2", "d4"], ["c8", "g4"]]
+	for step in steps:
+		if step[0] == "hunter":
+			var from := board.find_piece(_hunter)
+			var to := Board.algebraic_to_coord(step[1])
+			if board.is_occupied(to):
+				board.destroy_piece(to, false)
+			board.move_piece(from, to)
+			_match.sync()
+		else:
+			var move := _match.find_move(Board.algebraic_to_coord(step[0]), Board.algebraic_to_coord(step[1]))
+			if move:
+				_play(move)
+	_auto_rival = saved_rival
+	board.move_duration = saved_duration
+	_select(Board.algebraic_to_coord("c4"))
+	_hovered = Board.algebraic_to_coord("f3")
 	board.get_cell(_hovered).hovered = true
 	_update_info()
