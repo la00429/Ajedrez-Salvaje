@@ -1,0 +1,19 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://tests/board/board_demo.gd" id="1_demo"]
+[ext_resource type="Script" path="res://tests/board/demo_environment.gd" id="2_env"]
+[ext_resource type="PackedScene" path="res://scenes/board/Board.tscn" id="3_board"]
+
+[node name="BoardDemo" type="Node3D"]
+script = ExtResource("1_demo")
+
+[node name="Environment" type="Node3D" parent="."]
+script = ExtResource("2_env")
+
+[node name="Board" parent="." instance=ExtResource("3_board")]
+
+[node name="Camera3D" type="Camera3D" parent="."]
+fov = 38.0
+current = true
+
+[node name="UI" type="CanvasLayer" parent="."]
