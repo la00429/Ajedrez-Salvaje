@@ -4,7 +4,10 @@
 
 Implementar los seis componentes descritos en
 [`../modelos_simulacion.md`](../modelos_simulacion.md), reutilizando el
-generador pseudoaleatorio desarrollado en el taller anterior. Todos los
+generador pseudoaleatorio desarrollado en el taller anterior, cuyo código aún
+no está incluido en este repositorio. Antes de implementar los modelos, el
+equipo debe incorporar ese código o acordar formalmente su ubicación y API.
+Todos los
 modelos que necesiten azar deben recibir ese generador (o una interfaz
 compatible) por inyección, conservar semillas reproducibles y devolver
 resultados tipados, sin modificar directamente las reglas FIDE ni nodos
@@ -12,8 +15,11 @@ visuales.
 
 ## Archivos y clases
 
-Crear `scripts/simulation/` y sus pruebas en `tests/simulation/`. El generador
-del taller debe quedar como la única fuente de aleatoriedad del módulo
+Crear `scripts/simulation/` y sus pruebas en `tests/simulation/`. Actualmente
+`scripts/simulation/` solo contiene un `.gitkeep` con nombres previstos:
+`prng.gd`, `monte_carlo.gd`, `water_balance.gd`, `nursery_queue.gd`,
+`random_walk.gd` y `rival_agents.gd`; ninguno de esos archivos existe todavía.
+El generador del taller debe quedar como la única fuente de aleatoriedad del módulo
 (por ejemplo, adaptándolo a `RandomSource` si su API tiene otro nombre), no
 duplicándolo dentro de cada modelo. Proponer `MonteCarloModel`,
 `WaterBalance`, `NurseryQueue`, `RandomWalk` y `AgentModel`, además de un
@@ -44,8 +50,8 @@ datos calculados. El vivero debe distinguir `capture` de `harvest`.
 
 ## Orden de implementación
 
-1. Localizar el código y la API del generador del taller anterior y definir su
-   adaptador, sin reemplazarlo por otro RNG.
+1. Incorporar o recibir el código del generador del taller anterior y definir
+   su adaptador, sin reemplazarlo por otro RNG.
 2. Contratos y tipos de resultado.
 3. Monte Carlo y pruebas con una instancia inyectada del generador.
 4. Balance hídrico y cola, deterministas salvo configuración estocástica.
