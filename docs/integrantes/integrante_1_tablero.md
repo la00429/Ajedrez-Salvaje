@@ -237,3 +237,12 @@ En la ambientación aparecieron dos detalles del renderer de compatibilidad que 
 2. **¿Qué significa "casilla bloqueada"?** El tablero la marca y la dibuja, pero no impide mover piezas ahí. El módulo de piezas debe decidir si una pieza puede entrar a una casilla bloqueada.
 3. **¿El cazador ocupa la casilla?** Se modeló como un ocupante más, siguiendo el ejemplo del documento ("la casilla e5 queda ocupada por el cazador"). Falta definir si una pieza puede capturarlo.
 4. **El cazador en el borde.** El documento no dice qué pasa si el paso aleatorio sale del tablero (quedarse quieto o volver a sortear). Lo decide el módulo de simulación. El tablero ofrece `is_inside()` y `get_orthogonal_neighbors()` para cualquiera de las dos opciones.
+
+## Guía de entrega
+
+Implementar primero geometría y ocupación, después entrada y resaltados, y por
+último temas/efectos. Coordinar con el integrante 2 para no duplicar
+validación y con el 4 para materiales. Aceptación: tablero 8 × 8, una sola
+ocupación por casilla, señales tipadas, pruebas headless sin animaciones y
+ninguna regla FIDE dentro de `Board`. Entregar rama `feature/board-*` o
+`docs/board-*` con cambios, pruebas y capturas de la demo en el Pull Request.

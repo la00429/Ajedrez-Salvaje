@@ -58,3 +58,13 @@ La demo (`tests/board/board_demo.gd`) muestra cómo conectarlo todo, incluidas l
 - **Escenas de biomas** `Paramo.tscn`, `Amazonia.tscn` y `Santuario.tscn` en `scenes/biomes/`. Pueden partir de `tests/board/demo_environment.gd`. Las notas de iluminación para el renderer de compatibilidad están en `docs/integrantes/integrante_1_tablero.md`.
 - **Configuraciones** `paramo_config.tres`, `amazonia_config.tres` y `santuario_config.tres` en `resources/biomes/`, con los parámetros de simulación de cada nivel.
 - **Nombres en los créditos** del menú (`CREDITS` en `scripts/ui/main_menu.gd`).
+
+## Orden, dependencias y aceptación
+
+Crear primero escenas y temas, luego conectar métricas reales al HUD y después
+pantallas de fin. Consumir resultados del integrante 3 mediante integración;
+no calcular simulaciones ni reglas en la UI. La aceptación exige que los tres
+biomas puedan cargarse sin romper el tablero, que el HUD funcione sin valores
+pendientes, que pausa/fin sean accesibles y que GL Compatibility conserve
+legibilidad. Entregar en `feature/biomes-ui-*` con prueba visual y lista de
+recursos.

@@ -118,3 +118,15 @@ godot --path . res://tests/board/board_demo.tscn -- --fen="r3k2r/8/8/8/8/8/8/R3K
   - **IA rival.** Debe elegir entre `MovementValidator.legal_moves()`. La demo trae un rival provisional muy simple.
 - **Integración (integrante 5):** orden de fases del turno, y llamar a `match.sync()` después de las fases del cazador y del vivero.
 - **Documento:** actualizar la sección 4.2, que todavía habla del set reducido.
+
+## Orden, aceptación y entrega
+
+1. Mantener `ChessPosition` independiente de nodos.
+2. Completar/validar `MovementValidator` con casos FIDE.
+3. Integrar `ChessMatch` con `Board`.
+4. Conectar selección, promoción y estado final al gestor de turnos.
+
+La aceptación exige que una jugada ilegal no mute posición ni tablero, que
+perft conserve sus valores conocidos, que `sync()` soporte cambios externos y
+que el módulo no consulte simulaciones para legalidad. Entregar en
+`feature/chess-rules-*` con pruebas headless y la lista de FEN/casos cubiertos.
