@@ -140,7 +140,12 @@ func _setup_game() -> void:
 	_game_over = false
 	_selected = Board.INVALID
 	_last_move.clear()
+	board.clear_blocked()
+	board.clear_highlights()
 	_clear_tray()
+	if hud:
+		hud.hide_game_over()
+		hud.clear_moves()
 	
 	_config = SimulationConfig.new()
 	_engine = SimulationEngine.new(_config)
@@ -480,6 +485,15 @@ func _set_theme(theme_name: StringName) -> void:
 
 
 func _reset() -> void:
+	match _level_number:
+		1:
+			_round_number = 1
+		2:
+			_round_number = 11
+		3:
+			_round_number = 21
+		_:
+			_round_number = 1
 	_setup_game()
 
 
