@@ -7,6 +7,7 @@ godot --headless --path . --script res://tests/pieces/test_rules.gd
 godot --headless --path . --script res://tests/board/test_board.gd
 godot --headless --path . --script res://tests/simulation/test_simulation.gd
 godot --headless --path . --script res://tests/ui/test_main_menu.gd
+godot --headless --path . --script res://tests/integration/test_integration.gd
 ```
 
 Cada suite termina con `N comprobaciones, M fallidas`. Un código de salida cero
@@ -18,10 +19,9 @@ no basta: si un script no compila, Godot también sale con cero. Si aparece
 | `test_rules.gd` | Movimientos, jaque, mate, ahogado, enroque, captura al paso, promoción, FEN, perft, ocupantes neutrales, conteo y material |
 | `test_board.gd` | Coordenadas, ocupación, rayos, resaltados, vecindades, temas, animaciones y giro del tablero |
 | `test_simulation.gd` | Generadores, Monte Carlo, dinámica de sistemas, cola M/M/1, caminata, agente cazador, niveles, victoria y motor completo, incluida la partida de ejemplo del documento de preproducción |
-| `test_main_menu.gd` | Menú principal |
+| `test_main_menu.gd` | Menú principal y navegación |
+| `test_integration.gd` | Integración de partida completa (Rol 5): inicialización, ronda ambiental acoplada, alternancia y giro de turnos, vivero M/M/1, nivel 3 (retroexcavadora y tala) y condiciones de victoria |
 
 ## Manuales
 
-Abrir `tests/board/board_demo.tscn` (F6) para revisar tablero, piezas y
-ambientación en el renderer GL Compatibility. Las pruebas de integración de la
-partida completa son del integrante 5 (`tests/integration/`).
+Abrir `scenes/main/Main.tscn` o `scenes/ui/MainMenu.tscn` (F6 o F5) para jugar la partida completa integrada. Para revisar tablero, piezas y ambientación aisladas se puede usar `tests/board/board_demo.tscn`.
