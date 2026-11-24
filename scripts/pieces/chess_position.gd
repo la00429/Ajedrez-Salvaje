@@ -28,6 +28,7 @@ const CASTLE_RIVAL_QUEENSIDE := 8
 ## Posición inicial FIDE. Mayúsculas = jugador, minúsculas = rival.
 const START_FEN := "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 const FEN_LETTERS := "pnbrqk"
+const PIECE_VALUES := {1: 1, 2: 3, 3: 3, 4: 5, 5: 9}
 
 var squares := PackedInt32Array()
 ## 1 si la casilla está bloqueada (catástrofe, tala...).
@@ -79,6 +80,23 @@ func piece_at(coord: Vector2i) -> int:
 
 func set_piece(coord: Vector2i, code: int) -> void:
 	squares[to_index(coord)] = code
+
+
+func count(kind: int, side: int) -> int:
+	var code := encode(kind, side)
+	var total := 0
+	for index in 64:
+		if squares[index] == code:
+			total += 1
+	return total
+
+
+## Suma de valores clásicos (peón 1, caballo y alfil 3, torre 5, dama 9) de un bando.
+func material(side: int) -> int:
+	var total := 0
+	for kind in PIECE_VALUES:
+		total += PIECE_VALUES[kind] * count(kind, side)
+	return total
 
 
 ## Índice del rey de un bando, o -1 si no está (por ejemplo, si lo destruyó
@@ -196,7 +214,7 @@ static func from_board(board: Board, previous: ChessPosition = null) -> ChessPos
 		var occupant := board.get_piece_at(coord)
 		if occupant == null:
 			position.squares[i] = EMPTY
-		elif occupant is ChessPiece and occupant.kind != ChessPiece.Kind.HUNTER:
+		elif occupant is ChessPiece and not occupant.is_neutral():
 			position.squares[i] = encode(occupant.kind, occupant.side)
 		else:
 			position.squares[i] = NEUTRAL

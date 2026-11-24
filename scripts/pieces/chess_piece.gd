@@ -18,13 +18,14 @@ enum Kind {
 	QUEEN = 5, ## Dama: danta de montaña.
 	KING = 6, ## Rey: frailejón Gran Abuelo.
 	HUNTER = 16, ## Cazador furtivo: ocupante neutral, no es pieza de ajedrez.
+	EXCAVATOR = 17, ## Retroexcavadora: ocupante neutral que tala casillas (nivel 3).
 }
 
 ## Bando. El jugador juega con "blancas" (filas 1 y 2) y empieza.
 enum Team {
-	PLAYER = 0, ## Jugador (blancas).
-	RIVAL = 1, ## Fauna rival (negras).
-	NEUTRAL = -1, ## Cazador u otros ocupantes sin bando.
+	PLAYER = 0, ## Jugador 1 (blancas).
+	RIVAL = 1, ## Jugador 2 (negras).
+	NEUTRAL = -1, ## Cazador, retroexcavadora u otros ocupantes sin bando.
 }
 
 const PieceModels := preload("res://scripts/pieces/piece_models.gd")
@@ -33,11 +34,12 @@ const PieceModels := preload("res://scripts/pieces/piece_models.gd")
 const SPECIES := {
 	Kind.PAWN: "Frailejón", Kind.KNIGHT: "Venado", Kind.BISHOP: "Cóndor", Kind.ROOK: "Oso de anteojos",
 	Kind.QUEEN: "Danta", Kind.KING: "Gran Abuelo", Kind.HUNTER: "Cazador furtivo",
+	Kind.EXCAVATOR: "Retroexcavadora",
 }
 ## Nombre de la pieza de ajedrez equivalente.
 const CHESS_NAMES := {
 	Kind.PAWN: "peón", Kind.KNIGHT: "caballo", Kind.BISHOP: "alfil", Kind.ROOK: "torre",
-	Kind.QUEEN: "dama", Kind.KING: "rey", Kind.HUNTER: "neutral",
+	Kind.QUEEN: "dama", Kind.KING: "rey", Kind.HUNTER: "neutral", Kind.EXCAVATOR: "neutral",
 }
 
 ## Tipo de la pieza. Cambiarlo reconstruye el modelo (coronación).
@@ -58,7 +60,7 @@ var _model: Node3D
 static func create(p_kind: Kind, p_side: Team) -> ChessPiece:
 	var piece := ChessPiece.new()
 	piece.kind = p_kind
-	piece.side = p_side if p_kind != Kind.HUNTER else Team.NEUTRAL
+	piece.side = Team.NEUTRAL if is_neutral_kind(p_kind) else p_side
 	return piece
 
 
@@ -75,7 +77,15 @@ func species_name() -> String:
 func display_name() -> String:
 	if side == Team.NEUTRAL:
 		return species_name()
-	return "%s (%s)" % [species_name(), "jugador" if side == Team.PLAYER else "rival"]
+	return "%s (%s)" % [species_name(), "jugador 1" if side == Team.PLAYER else "jugador 2"]
+
+
+func is_neutral() -> bool:
+	return is_neutral_kind(kind)
+
+
+static func is_neutral_kind(value: Kind) -> bool:
+	return value == Kind.HUNTER or value == Kind.EXCAVATOR
 
 
 func _rebuild() -> void:

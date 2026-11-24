@@ -33,7 +33,7 @@ Las notas del repo preveían un archivo por pieza (`pawn.gd`, `knight.gd`...). S
 ## Cómo está separado
 
 - **Lo visual** (`ChessPiece`): un nodo 3D con `kind` y `side`. Si `kind` cambia (por ejemplo, al coronar), se reconstruye el modelo.
-- **Las reglas** (`ChessPosition` + `MovementValidator`): no tocan nodos. Así se pueden probar solas y la IA rival puede simular jugadas sin mover nada en pantalla.
+- **Las reglas** (`ChessPosition` + `MovementValidator`): no tocan nodos. Así se pueden probar solas y la simulación puede leer la posición sin mover nada en pantalla.
 - **El puente** (`ChessMatch`): ejecuta en el tablero las jugadas que las reglas aprueban y mantiene la posición sincronizada.
 
 ## Uso (para integración y simulación)
@@ -56,10 +56,10 @@ if captured:
 match.sync()
 
 match.status()   # PLAYING, CHECK, CHECKMATE, STALEMATE o KING_LOST
-match.winner()   # 0 jugador, 1 rival, -1 nadie (en curso o tablas)
+match.winner()   # 0 jugador 1, 1 jugador 2, -1 nadie (en curso o tablas)
 ```
 
-Para la IA rival (agentes ABM) conviene trabajar con la posición, sin mover nada en pantalla:
+Para consultar la posición sin mover nada en pantalla:
 
 ```gdscript
 var moves := MovementValidator.legal_moves(match.position)   # jugadas del bando al que le toca
@@ -112,11 +112,12 @@ godot --path . res://tests/board/board_demo.tscn -- --fen="r3k2r/8/8/8/8/8/8/R3K
 
 ## Pendientes para otros módulos
 
-- **Simulación (integrante 3):**
-  - **Agua.** El consumo de −0.6% del documento cuadraba con 2 animales por bando (los venados). Con el set completo hay 7 animales por bando: venados, cóndores, osos y danta. Hay que recalibrar `k_c` (por ejemplo, ≈0.086% por animal para mantener −0.6%).
-  - **Vivero.** Recibe los peones que devuelve `ChessMatch.play()`.
-  - **IA rival.** Debe elegir entre `MovementValidator.legal_moves()`. La demo trae un rival provisional muy simple.
-- **Integración (integrante 5):** orden de fases del turno, y llamar a `match.sync()` después de las fases del cazador y del vivero.
+- **Simulación (integrante 3):** usa `count` y `material` (hecho). El consumo de
+  agua quedó en 0.6/7 por animal para mantener el −0.6 % del documento con 7
+  animales por bando.
+- **Integración (integrante 5):** enviar los peones capturados al vivero de su
+  dueño con `engine.enqueue_capture`, llamar a `match.sync()` después de la fase
+  ambiental y girar el tablero en cada turno.
 - **Documento:** actualizar la sección 4.2, que todavía habla del set reducido.
 
 ## Orden, aceptación y entrega
@@ -130,3 +131,17 @@ La aceptación exige que una jugada ilegal no mute posición ni tablero, que
 perft conserve sus valores conocidos, que `sync()` soporte cambios externos y
 que el módulo no consulte simulaciones para legalidad. Entregar en
 `feature/chess-rules-*` con pruebas headless y la lista de FEN/casos cubiertos.
+
+## Cambios para el juego de dos jugadores
+
+- Los bandos son **jugador 1** (`Team.PLAYER`, blancas) y **jugador 2**
+  (`Team.RIVAL`, negras); `display_name()` lo refleja.
+- Nuevo ocupante neutral `Kind.EXCAVATOR` (retroexcavadora, nivel 3) con su
+  modelo 3D. `ChessPiece.is_neutral()` e `is_neutral_kind()` cubren cazador y
+  retroexcavadora; ambos cuentan como `NEUTRAL` en `ChessPosition.from_board`.
+- `ChessPosition.count(kind, side)` cuenta piezas de un tipo; la simulación lo
+  usa para saber cuántos frailejones y animales tiene cada jugador.
+- `ChessPosition.material(side)` suma el valor clásico de las piezas; desempata
+  la ronda final.
+- Ya no hay rival automático: el rival provisional de la demo queda solo como
+  herramienta de prueba.

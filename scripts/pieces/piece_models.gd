@@ -23,6 +23,7 @@ const ROOK := 4
 const QUEEN := 5
 const KING := 6
 const HUNTER := 16
+const EXCAVATOR := 17
 
 const PLAYER := 0
 const RIVAL := 1
@@ -51,6 +52,9 @@ static func build(root: Node3D, kind: int, side: int) -> float:
 		QUEEN:
 			_tapir(root, side)
 			return 0.95
+		EXCAVATOR:
+			_excavator(root)
+			return 0.8
 		_:
 			_hunter(root)
 			return 0.9
@@ -361,3 +365,33 @@ static func _hunter(root: Node3D) -> void:
 	Kit.add_segment(root, Vector3(0, top + 0.58, 0), Vector3(0, top + 0.66, 0), 0.075, hat, 0.06)
 	Kit.add_segment(root, Vector3(0.11, top + 0.12, 0.08), Vector3(-0.13, top + 0.68, 0.08), 0.014, metal)
 	Kit.add_segment(root, Vector3(0.11, top + 0.12, 0.08), Vector3(0.15, top + 0.04, 0.085), 0.028, wood)
+
+
+## Retroexcavadora: orugas, cabina amarilla y brazo articulado con cucharón.
+static func _excavator(root: Node3D) -> void:
+	var top := _base(root, NEUTRAL, 0.2)
+	var paint := Kit.material(Color("#e0a526"), 0.55, 0.2)
+	var rubber := Kit.material(Color("#26221f"), 0.9)
+	var glass := Kit.material(Color("#3d5566"), 0.15, 0.4)
+	var steel := Kit.material(Color("#55504a"), 0.4, 0.7)
+	for s in [-1.0, 1.0]:
+		_box(root, Vector3(s * 0.13, top + 0.045, 0.0), Vector3(0.09, 0.09, 0.42), rubber)
+	_box(root, Vector3(0.0, top + 0.13, 0.03), Vector3(0.3, 0.08, 0.34), paint)
+	_box(root, Vector3(0.06, top + 0.25, 0.08), Vector3(0.16, 0.16, 0.16), paint)
+	_box(root, Vector3(0.06, top + 0.27, -0.005), Vector3(0.13, 0.1, 0.01), glass)
+	var shoulder := Vector3(-0.07, top + 0.2, -0.04)
+	var elbow := Vector3(-0.07, top + 0.42, -0.2)
+	var wrist := Vector3(-0.07, top + 0.2, -0.32)
+	Kit.add_segment(root, shoulder, elbow, 0.03, paint)
+	Kit.add_segment(root, elbow, wrist, 0.025, paint)
+	_box(root, wrist + Vector3(0.0, -0.05, -0.02), Vector3(0.12, 0.08, 0.08), steel)
+
+
+static func _box(root: Node3D, center: Vector3, size: Vector3, mat: Material) -> void:
+	var mesh := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = size
+	mesh.mesh = box
+	mesh.material_override = mat
+	mesh.position = center
+	root.add_child(mesh)

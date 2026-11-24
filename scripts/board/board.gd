@@ -34,6 +34,8 @@ signal piece_removed(piece: Node3D, coord: Vector2i)
 signal piece_moved(piece: Node3D, from: Vector2i, to: Vector2i)
 ## Cambió el estado de bloqueo de una casilla.
 signal cell_blocked_changed(coord: Vector2i, blocked: bool)
+## Se emite cuando el tablero termina de girar hacia el bando [param side].
+signal orientation_changed(side: int)
 
 ## Número de casillas por lado.
 const SIZE := 8
@@ -88,6 +90,8 @@ const BoardEffect := preload("res://scripts/board/board_effect.gd")
 @export var play_intro_on_ready := true
 ## Duración base en segundos del salto al mover un ocupante. 0 = instantáneo.
 @export_range(0.0, 1.5, 0.01) var move_duration := 0.34
+## Duración del giro del tablero al cambiar de turno.
+@export_range(0.0, 3.0, 0.05) var turn_duration := 0.9
 ## Si es false, el tablero ignora clics y cursor (por ejemplo, en el turno rival).
 @export var input_enabled := true:
 	set(value):
@@ -108,6 +112,9 @@ var _accent_material: StandardMaterial3D
 var _glow_color := Color.BLACK
 var _glow_energy := 0.0
 var _glow_tween: Tween
+var view_side := 0
+var _labels: Array[Label3D] = []
+var _turn_tween: Tween
 var _light_material := ShaderMaterial.new()
 var _dark_material := ShaderMaterial.new()
 
@@ -540,6 +547,28 @@ func play_intro() -> void:
 		_drop_in(_occupants[coord], cells_time + (SIZE - 1 - coord.y) * 0.04)
 
 
+## Gira el tablero sobre su centro para que el bando [param side] (0 o 1) lo vea
+## desde su lado. Las coordenadas y los clics no cambian.
+func orient_to_side(side: int, animate: bool = true) -> void:
+	view_side = side
+	_orient_labels(side)
+	if _turn_tween and _turn_tween.is_valid():
+		_turn_tween.kill()
+	var target := PI if side == 1 else 0.0
+	if not animate or not _animating() or turn_duration <= 0.0:
+		rotation.y = target
+		orientation_changed.emit(side)
+		return
+	_turn_tween = create_tween()
+	_turn_tween.tween_property(self, "rotation:y", target, turn_duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	_turn_tween.finished.connect(func() -> void: orientation_changed.emit(side))
+
+
+func _orient_labels(side: int) -> void:
+	for label in _labels:
+		label.rotation_degrees = Vector3(-90.0, 180.0 if side == 1 else 0.0, 0.0)
+
+
 ## Muestra un efecto de partículas y onda en una casilla.
 func spawn_effect(coord: Vector2i, color: Color) -> void:
 	if not _animating() or not is_inside(coord):
@@ -727,6 +756,7 @@ func _build_frame() -> void:
 	for child in _frame_layer.get_children():
 		_frame_layer.remove_child(child)
 		child.queue_free()
+	_labels.clear()
 
 	var half := get_board_size() * 0.5
 	var frame := get_frame_width()
@@ -808,10 +838,11 @@ func _add_label(text: String, at: Vector3, frame: float) -> void:
 	label.pixel_size = frame * 0.4 / 96.0
 	label.outline_size = 0
 	label.modulate = board_theme.label_color
-	label.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
+	label.rotation_degrees = Vector3(-90.0, 180.0 if view_side == 1 else 0.0, 0.0)
 	label.position = at
 	label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_frame_layer.add_child(label)
+	_labels.append(label)
 
 
 func _add_box(at: Vector3, size: Vector3, material: Material) -> void:

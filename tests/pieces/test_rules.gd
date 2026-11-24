@@ -39,6 +39,7 @@ func _run() -> void:
 	_test_game_specific_rules()
 	_test_fen_and_notation()
 	_test_board_integration()
+	_test_two_player_support()
 	print("\n%d comprobaciones, %d fallidas" % [_checks, _failures])
 	quit(1 if _failures > 0 else 0)
 
@@ -248,4 +249,24 @@ func _test_board_integration() -> void:
 	_check(game.position.piece_at(Vector2i(3, 0)) == ChessPosition.NEUTRAL, "el cazador se lee como ocupante neutral")
 	_check(game.position.blocked[ChessPosition.to_index(Vector2i(4, 1))] == 1, "las casillas bloqueadas pasan a las reglas")
 	_check(game.find_move(Vector2i(4, 0), Vector2i(2, 0)) == null, "con el cazador en d1 no se puede enrocar largo")
+	board.queue_free()
+
+
+func _test_two_player_support() -> void:
+	_section("Dos jugadores y ocupantes neutrales")
+	var start := ChessPosition.initial()
+	_check(start.count(ChessPiece.Kind.PAWN, ChessPosition.PLAYER) == 8, "cuenta los peones de un bando")
+	_check(start.material(ChessPosition.PLAYER) == 39 and start.material(ChessPosition.RIVAL) == 39, "material inicial 39 por bando")
+	_check(ChessPiece.is_neutral_kind(ChessPiece.Kind.EXCAVATOR) and ChessPiece.is_neutral_kind(ChessPiece.Kind.HUNTER), "cazador y retroexcavadora son neutrales")
+	var excavator := ChessPiece.create(ChessPiece.Kind.EXCAVATOR, ChessPiece.Team.PLAYER)
+	_check(excavator.side == ChessPiece.Team.NEUTRAL and excavator.species_name() == "Retroexcavadora", "la retroexcavadora siempre es neutral")
+	var knight := ChessPiece.create(ChessPiece.Kind.KNIGHT, ChessPiece.Team.RIVAL)
+	_check(knight.display_name() == "Venado (jugador 2)", "los bandos se nombran jugador 1 y jugador 2")
+	var board: Board = BOARD_SCENE.instantiate()
+	board.animations_enabled = false
+	board.play_intro_on_ready = false
+	root.add_child(board)
+	board.place_piece(excavator, Vector2i(3, 3))
+	_check(ChessPosition.from_board(board).piece_at(Vector2i(3, 3)) == ChessPosition.NEUTRAL, "en la posición la retroexcavadora bloquea como neutral")
+	knight.free()
 	board.queue_free()

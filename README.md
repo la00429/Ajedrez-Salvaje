@@ -1,24 +1,23 @@
 # Ajedrez Salvaje: Biomas de Colombia
 
-Videojuego 3D en Godot 4 que combina una partida de ajedrez completo con
-biomas colombianos y modelos de simulación ambiental. La documentación de
+Videojuego 3D en Godot 4 para dos jugadores que combina una partida de
+ajedrez completo con la fauna y flora del páramo colombiano y modelos de
+simulación ambiental. La documentación de
 implementación está en [`docs/`](docs/README.md).
 
 ## Alcance actual
 
-- Tablero 8 × 8 y piezas completas: peón, caballo, alfil, torre, dama y rey.
-- Reglas FIDE implementadas en `ChessPosition` y `MovementValidator`: jugadas
-  legales, capturas, jaque, mate, ahogado, enroque, captura al paso y
-  promoción.
-- Puente entre reglas y representación 3D mediante `ChessMatch`.
-- Tablero, casillas, resaltados, temas visuales y HUD funcionales.
-- Tres niveles/biomas previstos; sus parámetros y condiciones siguen
-  pendientes de validación del diseño ambiental.
-- Modelos de simulación previstos: generador pseudoaleatorio, Monte Carlo,
-  balance hídrico, cola M/M/1, caminata aleatoria y ABM.
+- Ajedrez FIDE completo para dos jugadores; el tablero gira al cambiar de
+  turno.
+- Cada jugador tiene su reserva de agua y su vivero; tres niveles dentro de una
+  misma partida.
+- Motor de simulación con los modelos del curso: generadores congruenciales,
+  Monte Carlo, dinámica de sistemas, cola M/M/1, caminata aleatoria 2D y un
+  agente (el cazador furtivo).
+- Tablero, piezas, menú y HUD funcionales; falta la escena de partida que una
+  todo (integrante 5).
 
-Lo que no exista en `scripts/`, `scenes/`, `resources/` o `tests/` se
-considera pendiente, aunque esté descrito como objetivo en la documentación.
+Las reglas completas están en [`docs/reglas_del_juego.md`](docs/reglas_del_juego.md).
 
 ## Tecnologías y requisitos
 
@@ -53,18 +52,18 @@ docs/         documentación técnica y guías por integrante
 | 4 | Biomas e interfaz |
 | 5 | Integración y progresión |
 
-## Pruebas existentes
+## Pruebas
 
 Desde la raíz:
 
 ```bash
 godot --headless --path . --script res://tests/pieces/test_rules.gd
 godot --headless --path . --script res://tests/board/test_board.gd
+godot --headless --path . --script res://tests/simulation/test_simulation.gd
+godot --headless --path . --script res://tests/ui/test_main_menu.gd
 ```
 
-El primer comando imprime el número de comprobaciones y fallos, e incluye
-perft e integración `ChessMatch`-`Board`. Las pruebas ambientales/UI existentes
-pueden ejecutarse como escenas según se describe en [`docs/pruebas.md`](docs/pruebas.md).
+Detalles en [`docs/pruebas.md`](docs/pruebas.md).
 
 ## Documentación
 
@@ -73,9 +72,6 @@ pueden ejecutarse como escenas según se describe en [`docs/pruebas.md`](docs/pr
 - [Especificación técnica](docs/especificacion_tecnica.md)
 - [Reglas del juego](docs/reglas_del_juego.md)
 - [Modelos de simulación](docs/modelos_simulacion.md)
-- [Niveles y biomas](docs/niveles_y_biomas.md)
-- [Flujo de turnos](docs/flujo_de_turnos.md)
-- [Contratos de integración](docs/integracion_modulos.md)
 - [Pruebas](docs/pruebas.md)
 - [Decisiones técnicas](docs/decisiones_tecnicas.md)
 - [Trabajo con Git](docs/convenciones_git.md)

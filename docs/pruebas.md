@@ -1,44 +1,27 @@
 # Pruebas
 
-## Unitarias
-
-### Ajedrez
-
-Usar `tests/pieces/test_rules.gd` para movimientos de las seis piezas,
-capturas, jaque, mate, ahogado, enroques, captura al paso, promociones, FEN y
-reglas de cazador/casillas bloqueadas. Mantener perft de posiciones conocidas.
-
-### Tablero
-
-Usar `tests/board/test_board.gd` para coordenadas, límites, ocupación,
-movimiento, retiro, resaltados, vecindades y conversión 3D. Desactivar
-animaciones en pruebas.
-
-### Simulación
-
-Añadir pruebas reproducibles por semilla, límites, conservación de unidades,
-cola vacía/saturada, bordes y cero agentes. No fijar números que no estén en la
-especificación ambiental.
-
-## Integración
-
-Comprobar que un clic solo ejecuta una jugada legal, que `ChessMatch` y
-`Board` conservan la misma posición, que una captura llega al vivero con
-origen `capture`, que una cosecha llega con origen `harvest`, y que
-`ChessMatch.sync()` repara cambios externos.
-
-## Sistema y UI
-
-Ejecutar escenas de demo, comprobar carga de cada bioma, pausa, reinicio,
-transición, HUD, pantallas de victoria/derrota y bloqueo de entrada durante
-turnos rivales. Validar visualmente GL Compatibility.
-
-## Comandos
+Desde la raíz del proyecto:
 
 ```bash
 godot --headless --path . --script res://tests/pieces/test_rules.gd
 godot --headless --path . --script res://tests/board/test_board.gd
+godot --headless --path . --script res://tests/simulation/test_simulation.gd
+godot --headless --path . --script res://tests/ui/test_main_menu.gd
 ```
 
-Un código de salida cero no basta si el script no compiló: revisar siempre el
-resumen `N comprobaciones, M fallidas`.
+Cada suite termina con `N comprobaciones, M fallidas`. Un código de salida cero
+no basta: si un script no compila, Godot también sale con cero. Si aparece
+`Could not find type ...`, primero ejecutar `godot --headless --path . --import`.
+
+| Suite | Cubre |
+|---|---|
+| `test_rules.gd` | Movimientos, jaque, mate, ahogado, enroque, captura al paso, promoción, FEN, perft, ocupantes neutrales, conteo y material |
+| `test_board.gd` | Coordenadas, ocupación, rayos, resaltados, vecindades, temas, animaciones y giro del tablero |
+| `test_simulation.gd` | Generadores, Monte Carlo, dinámica de sistemas, cola M/M/1, caminata, agente cazador, niveles, victoria y motor completo, incluida la partida de ejemplo del documento de preproducción |
+| `test_main_menu.gd` | Menú principal |
+
+## Manuales
+
+Abrir `tests/board/board_demo.tscn` (F6) para revisar tablero, piezas y
+ambientación en el renderer GL Compatibility. Las pruebas de integración de la
+partida completa son del integrante 5 (`tests/integration/`).
