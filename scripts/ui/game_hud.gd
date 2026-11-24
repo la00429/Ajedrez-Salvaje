@@ -486,9 +486,7 @@ func _icon_button(icon_kind: StringName, tip: String, action: Callable) -> Butto
 	var icon := HudIcon.new()
 	icon.kind = icon_kind
 	icon.color = Color(UiStyle.TEXT, 0.85)
-	icon.set_anchors_preset(Control.PRESET_CENTER)
-	icon.custom_minimum_size = Vector2(18, 18)
-	icon.position = Vector2(9, 9)
+	icon.set_anchors_preset(Control.PRESET_FULL_RECT)
 	button.add_child(icon)
 	return button
 

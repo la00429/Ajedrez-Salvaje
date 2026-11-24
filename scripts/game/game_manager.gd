@@ -228,7 +228,6 @@ func _apply_environment(result: RoundResult) -> void:
 	# 4. Tala de casillas que quedan intransitables
 	if result.felled != Board.INVALID:
 		board.set_blocked(result.felled, true)
-		_match.position.set_blocked(result.felled, true)
 		hud.show_banner("Casilla %s bloqueada por tala" % board.coord_to_algebraic(result.felled), &"bad")
 
 

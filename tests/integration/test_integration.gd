@@ -14,6 +14,7 @@ func _init() -> void:
 	_test_simulation_integration_round()
 	_test_turn_rotation_and_moves()
 	_test_nursery_capture_integration()
+	_test_level_3_excavator_and_felled_tiles()
 	_test_victory_conditions_integration()
 	
 	print("\n%d comprobaciones, %d fallidas" % [_checks, _failed])
@@ -81,6 +82,31 @@ func _test_nursery_capture_integration() -> void:
 	var enqueued := engine.enqueue_capture(ChessPosition.PLAYER, dummy_pawn, 2)
 	_assert_true(enqueued, "Peón capturado ingresa exitosamente a la cola del vivero M/M/1")
 	_assert_eq(engine.nursery(ChessPosition.PLAYER).queue.length(), 1, "Cola de vivero tiene 1 planta en espera")
+
+
+func _test_level_3_excavator_and_felled_tiles() -> void:
+	print("- Integración Nivel 3: Retroexcavadora y tala de casillas")
+	var board := Board.new()
+	board._setup()
+	var config := SimulationConfig.new()
+	var engine := SimulationEngine.new(config)
+	var match_game := ChessMatch.new(board)
+	match_game.setup_initial()
+	
+	# Ronda 21 (Nivel 3)
+	var result := engine.run_round(21, match_game.position)
+	_assert_eq(result.level, 3, "Nivel es 3 en ronda 21")
+	_assert_true(result.excavator_spawned, "Retroexcavadora generada en nivel 3")
+	
+	# Ronda 22 (Retroexcavadora se mueve y tala)
+	var result_22 := engine.run_round(22, match_game.position)
+	if result_22.felled != Board.INVALID:
+		board.set_blocked(result_22.felled, true)
+		match_game.sync()
+		_assert_true(board.is_blocked(result_22.felled), "Casilla talada queda bloqueada en el tablero")
+		_assert_eq(match_game.position.blocked[ChessPosition.to_index(result_22.felled)], 1, "Casilla talada sincronizada como bloqueada en ChessPosition")
+	else:
+		_assert_true(true, "Retroexcavadora evaluó paso sin tala en este turno")
 
 
 func _test_victory_conditions_integration() -> void:

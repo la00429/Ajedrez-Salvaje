@@ -13,6 +13,10 @@ var color := Color.WHITE:
 	set(value):
 		color = value
 		queue_redraw()
+var icon_size: float = 18.0:
+	set(value):
+		icon_size = value
+		queue_redraw()
 
 
 func _init() -> void:
@@ -21,7 +25,7 @@ func _init() -> void:
 
 
 func _draw() -> void:
-	var s := minf(size.x, size.y)
+	var s := icon_size if icon_size > 0.0 else minf(size.x, size.y)
 	var c := size * 0.5
 	var w := maxf(1.5, s * 0.1)
 	var shadow := Color(0, 0, 0, 0.45)
