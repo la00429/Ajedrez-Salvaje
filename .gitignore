@@ -10,3 +10,8 @@ export_presets.cfg
 # Temporary files
 *.tmp
 *.log
+
+# IDE specific files
+.idea/
+*.iml
+
