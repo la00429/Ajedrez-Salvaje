@@ -59,6 +59,7 @@ var _excavator_piece: ChessPiece
 var _tray: Node3D
 var _tray_count: Array[int] = [0, 0]
 var _theme_name: StringName = &"paramo"
+var _current_climate_str: String = "Estable"
 
 var _yaw := deg_to_rad(PLAY_VIEW.x)
 var _pitch := deg_to_rad(PLAY_VIEW.y)
@@ -386,14 +387,14 @@ func _update_hud_round(result: RoundResult) -> void:
 		hud.play_level_intro(0.3)
 		hud.show_banner("¡NIVEL %d: %s!" % [result.level, result.climate_label().to_upper()], &"info")
 		
+	_current_climate_str = result.climate_label()
 	_update_hud_ecosystem(_match.side_to_move())
 
 
 func _update_hud_ecosystem(side: int) -> void:
 	var water_pct := _engine.water(side)
-	var climate_str := Climate.label(_engine._sample_climate()) if _engine else "Estable"
 	var queue_len := _engine.nursery(side).queue.length()
-	hud.set_ecosystem(water_pct, climate_str, queue_len)
+	hud.set_ecosystem(water_pct, _current_climate_str, queue_len)
 
 
 func _refresh_state() -> void:
@@ -492,13 +493,31 @@ func _on_pause_changed(paused: bool) -> void:
 
 func _toggle_panorama() -> void:
 	_panorama = not _panorama
-	var target: Vector3 = PANORAMA_VIEW if _panorama else PLAY_VIEW
-	if _camera_tween:
+	var view: Vector3 = PANORAMA_VIEW if _panorama else PLAY_VIEW
+	_fly_to(Vector3(view.x if _panorama else rad_to_deg(_yaw), view.y, view.z), 1.2)
+
+
+func _play_camera_intro() -> void:
+	_yaw = deg_to_rad(-38.0)
+	_pitch = deg_to_rad(9.0)
+	_distance = 36.0
+	_update_camera()
+	_fly_to(PLAY_VIEW, 2.5)
+
+
+func _fly_to(view: Vector3, duration: float) -> void:
+	if _camera_tween and _camera_tween.is_valid():
 		_camera_tween.kill()
-	_camera_tween = create_tween().set_parallel(true)
-	_camera_tween.tween_property(self, "_yaw", deg_to_rad(target.x), 0.7).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_camera_tween.tween_property(self, "_pitch", deg_to_rad(target.y), 0.7).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_camera_tween.tween_property(self, "_distance", target.z, 0.7).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	var from := Vector3(_yaw, _pitch, _distance)
+	var to := Vector3(deg_to_rad(view.x), deg_to_rad(view.y), view.z)
+	var step := func(t: float) -> void:
+		var v := from.lerp(to, t)
+		_yaw = v.x
+		_pitch = v.y
+		_distance = v.z
+		_update_camera()
+	_camera_tween = create_tween()
+	_camera_tween.tween_method(step, 0.0, 1.0, duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
 func _update_camera() -> void:
@@ -533,17 +552,22 @@ func _update_turn_anchor() -> void:
 	hud.set_turn_anchor(best, visible)
 
 
-func _play_camera_intro() -> void:
-	var start_yaw := _yaw - deg_to_rad(30.0)
-	var target_yaw := _yaw
-	_yaw = start_yaw
-	_update_camera()
-	create_tween().tween_property(self, "_yaw", target_yaw, 1.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-
-
 func _unhandled_input(event: InputEvent) -> void:
 	if hud.is_paused():
 		return
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_V:
+			_toggle_panorama()
+			get_viewport().set_input_as_handled()
+			return
+		elif event.keycode == KEY_TAB:
+			hud.toggle_moves()
+			get_viewport().set_input_as_handled()
+			return
+		elif event.keycode == KEY_F1:
+			hud.toggle_debug()
+			get_viewport().set_input_as_handled()
+			return
 	if event is InputEventMouseButton:
 		match event.button_index:
 			MOUSE_BUTTON_WHEEL_UP:
