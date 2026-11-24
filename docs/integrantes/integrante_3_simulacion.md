@@ -1,74 +1,96 @@
 # Integrante 3 — Motor de simulación
 
-## Objetivo y alcance
+## Alcance
 
-Implementar los seis componentes descritos en
-[`../modelos_simulacion.md`](../modelos_simulacion.md), reutilizando el
-generador pseudoaleatorio desarrollado en el taller anterior, cuyo código aún
-no está incluido en este repositorio. Antes de implementar los modelos, el
-equipo debe incorporar ese código o acordar formalmente su ubicación y API.
-Todos los
-modelos que necesiten azar deben recibir ese generador (o una interfaz
-compatible) por inyección, conservar semillas reproducibles y devolver
-resultados tipados, sin modificar directamente las reglas FIDE ni nodos
-visuales.
+Los modelos del curso que mueven el ecosistema y los desestabilizadores, con
+la estructura vista en clase: generadores congruenciales, Monte Carlo,
+dinámica de sistemas, sistema de espera M/M/1, caminata aleatoria 2D y un
+agente. También las condiciones de victoria, porque combinan ajedrez y agua.
 
-## Archivos y clases
+El motor **no mueve nodos**: recibe la posición de ajedrez y devuelve qué
+cambió. Integración aplica esos cambios en el tablero. El detalle de cada
+modelo está en [`../modelos_simulacion.md`](../modelos_simulacion.md).
 
-Crear `scripts/simulation/` y sus pruebas en `tests/simulation/`. Actualmente
-`scripts/simulation/` solo contiene un `.gitkeep` con nombres previstos:
-`prng.gd`, `monte_carlo.gd`, `water_balance.gd`, `nursery_queue.gd`,
-`random_walk.gd` y `rival_agents.gd`; ninguno de esos archivos existe todavía.
-El generador del taller debe quedar como la única fuente de aleatoriedad del módulo
-(por ejemplo, adaptándolo a `RandomSource` si su API tiene otro nombre), no
-duplicándolo dentro de cada modelo. Proponer `MonteCarloModel`,
-`WaterBalance`, `NurseryQueue`, `RandomWalk` y `AgentModel`, además de un
-resultado común. Cada clase debe documentar entradas, salidas, unidades,
-límites y si consume aleatoriedad; no inventar valores.
+## Archivos
 
-La correspondencia mínima es:
-
-| Componente | ¿Usa el generador? | Uso |
+| Archivo | Clase | Papel |
 |---|---|---|
-| Monte Carlo | Sí | Muestrear cada réplica y evento estocástico |
-| Balance hídrico | No necesariamente | Actualizar consumos y eventos recibidos |
-| Cola M/M/1 | Solo si el diseño modela llegadas/servicios aleatorios | Muestrear eventos; si recibe trazas, debe ser determinista |
-| Caminata aleatoria | Sí | Elegir un vecino válido |
-| ABM | Sí, cuando sus reglas incluyen azar | Orden, decisiones o eventos de agentes |
-| Adaptador de integración | No | Coordinar modelos y propagar semillas/resultados |
+| `random_source.gd` | `RandomSource` | Interfaz de azar inyectable (`next_r`, `fork`) |
+| `mixed_congruential.gd` | `MixedCongruential` | Congruencia mixta y Hull-Dobell |
+| `multiplicative_congruential.gd` | `MultiplicativeCongruential` | Lehmer |
+| `seed_mixer.gd` | `SeedMixer` | Semillas de los subgeneradores |
+| `monte_carlo_matrix.gd` | `MonteCarloMatrix` | Rangos de r por evento |
+| `monte_carlo.gd`, `monte_carlo_estimate.gd`, `running_stats.gd` | `MonteCarloModel`, `MonteCarloEstimate`, `RunningStats` | Réplicas y agregación (media, desviación, IC 95 %) |
+| `climate.gd` | `Climate` | Eventos climáticos y etiquetas para el HUD |
+| `stock.gd`, `flow.gd`, `stock_step.gd` | `Stock`, `Flow`, `StockStep` | Variable de estado, variables de flujo y paso de Euler |
+| `water_system.gd`, `census.gd` | `WaterSystem`, `Census` | Flujos del agua según plantas y animales vivos |
+| `queue_entity.gd`, `nursery_queue.gd` | `QueueEntity`, `NurseryQueue` | Entidades con sus tiempos y cola FIFO |
+| `exponential_service.gd`, `nursery_server.gd`, `mm1_theory.gd` | `ExponentialService`, `NurseryServer`, `MM1Theory` | Servicio exponencial, servidor encendido/apagado y fórmulas M/M/1 |
+| `random_walk.gd`, `walk_step.gd` | `RandomWalk`, `WalkStep` | Caminata de la retroexcavadora |
+| `hunter_environment.gd`, `hunter_agent.gd`, `hunter_observation.gd`, `hunter_perception.gd`, `hunter_transition.gd` | `HunterEnvironment`, `HunterAgent`, … | Agente cazador |
+| `side_ecosystem.gd` | `SideEcosystem` | Agua y vivero de un jugador |
+| `round_result.gd` | `RoundResult` | Todo lo que cambió en una ronda |
+| `verdict.gd`, `victory_rules.gd` | `Verdict`, `VictoryRules` | Condiciones de victoria |
+| `simulation_config.gd` | `SimulationConfig` | Todos los parámetros (`Resource`, se puede guardar como `.tres`) |
+| `simulation_engine.gd` | `SimulationEngine` | Ejecuta la fase ambiental de cada ronda |
 
-El balance hídrico y la cola no deben introducir azar por su cuenta. Si una
-configuración los hace estocásticos, deben recibir el mismo generador
-compartido o un subgenerador derivado explícitamente de la semilla de la
-simulación.
+## Uso desde integración
 
-## Dependencias y API
+```gdscript
+var engine := SimulationEngine.new(config)            # config opcional
+board.place_piece(ChessPiece.create(ChessPiece.Kind.HUNTER, ChessPiece.Team.NEUTRAL), engine.hunter)
 
-Consume geometría pública de `Board`, estado consultable de `ChessMatch` y
-configuración del nivel. Entrega resultados a integración; HUD recibe solo
-datos calculados. El vivero debe distinguir `capture` de `harvest`.
+# Al inicio de cada ronda (antes de que jueguen los dos)
+var result := engine.run_round(round_number, match.position)
 
-## Orden de implementación
+# Una captura de ajedrez de un peón entra al vivero de su dueño
+var captured := match.play(move)
+if captured and captured.kind == ChessPiece.Kind.PAWN:
+	engine.enqueue_capture(captured.side, captured, round_number)
 
-1. Incorporar o recibir el código del generador del taller anterior y definir
-   su adaptador, sin reemplazarlo por otro RNG.
-2. Contratos y tipos de resultado.
-3. Monte Carlo y pruebas con una instancia inyectada del generador.
-4. Balance hídrico y cola, deterministas salvo configuración estocástica.
-5. Caminata y ABM con el mismo mecanismo de aleatoriedad y bordes definidos.
-6. Adaptador de integración y señales aprobadas.
+# Después de cada jugada y de cada ronda
+var verdict := engine.verdict(match.position, round_number)
+```
 
-## Pruebas y aceptación
+### Qué trae `RoundResult`
 
-Probar que una misma semilla del generador del taller produce la misma
-secuencia y los mismos resultados en Monte Carlo, caminata y ABM; también
-probar rangos, casos vacíos, saturación, esquinas y cero agentes. Verificar
-que dos modelos no compartan accidentalmente un estado mutable cuando deban
-usar subsemillas reproducibles. Aceptar solo si no hay constantes ambientales
-inventadas, las unidades están declaradas y la integración no toca nodos
-directamente.
+| Campo | Qué hacer con él |
+|---|---|
+| `level`, `level_started` | Mostrar el nivel; si empezó, hacer la intro del nivel |
+| `climate`, `climate_label()` | HUD |
+| `water[side]` (`StockStep`), `water_percent(side)` | HUD; detalle de flujos con `rate_of(...)` |
+| `regenerated[side]` (`QueueEntity` o `null`) | Colocar el peón (`payload`) en `board.first_empty_in_row(1)` o `(6)` |
+| `queue_lengths[side]` | HUD (plantas en el vivero) |
+| `hunter.step` (`WalkStep`) | Mover el cazador; si `to` tenía una pieza, destruirla (y si es peón, `enqueue_capture`) |
+| `excavator_spawned`, `excavator` (`WalkStep`) | Colocar la retroexcavadora en `excavator.from` si apareció; moverla y destruir lo que pise |
+| `felled` | `board.set_blocked(felled)` |
 
-## Entrega
+Después de aplicar los cambios, `match.sync()`.
 
-Usar rama `feature/simulation-*`, abrir Pull Request hacia `develop`, incluir
-pruebas headless, ejemplo de consumo y actualización de [modelos](../modelos_simulacion.md).
+### Estado del motor
+
+`engine.level`, `engine.hunter`, `engine.excavator`, `engine.water(side)`,
+`engine.nursery(side)` (con `utilization()`, `arrival_rate()`,
+`average_system_time()`), `engine.hunter_reward()` y `engine.reset()`.
+
+## Garantías
+
+- Misma semilla, misma partida; `reset()` la repite.
+- Cada modelo tiene su propio subgenerador: el clima no cambia aunque cambien
+  las jugadas.
+- El cazador y la retroexcavadora no entran a casillas bloqueadas ni se pisan
+  entre sí.
+- No modifica reglas FIDE ni nodos.
+
+## Pruebas
+
+```bash
+godot --headless --path . --script res://tests/simulation/test_simulation.gd
+```
+
+Cubren cada modelo por separado, la partida de ejemplo del documento de
+preproducción, los niveles, las condiciones de victoria y el motor completo.
+
+## Pendiente
+
+Los valores supuestos listados en [`../decisiones_tecnicas.md`](../decisiones_tecnicas.md).

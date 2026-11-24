@@ -109,7 +109,7 @@ Propiedades exportadas:
 - `board_theme`, `cell_size` y `show_coordinates`.
 - `animations_enabled` y `play_intro_on_ready`. Hay que desactivarlas en pruebas.
 - `move_duration`.
-- `input_enabled`. Con `input_enabled = false` el tablero ignora los clics, por ejemplo durante el turno rival.
+- `input_enabled`. Con `input_enabled = false` el tablero ignora los clics, por ejemplo mientras gira o durante la fase ambiental.
 
 ### Señales
 
@@ -145,27 +145,25 @@ if captured:
 
 Para calcular movimientos, el validador consulta `Board.is_inside()`, `board.get_piece_at()` y, si el equipo lo decide, `board.is_blocked()`. Después los muestra con `board.highlight_cells(moves, Cell.Highlight.MOVE)`. Las piezas son `ChessPiece` (`Node3D` con el origen en la base). Las reglas y la conexión con el tablero (`ChessMatch`) están documentadas en `docs/integrantes/integrante_2_piezas.md`.
 
-**Simulación (Integrante 3): cazador y vivero.**
+**Simulación (Integrante 3).** `SimulationEngine.run_round` devuelve el paso
+del cazador y de la retroexcavadora, la casilla talada y los peones
+regenerados. Integración los aplica con el tablero:
 
 ```gdscript
-# Caminata 2D: r en [0, 1) del generador de Lehmer
-var step := Board.ORTHOGONAL_DIRECTIONS[int(r * 4.0)]
-var to := hunter_coord + step
-if Board.is_inside(to):
-    board.destroy_piece(to)               # tala o aplastamiento, si había algo
-    board.move_piece(hunter_coord, to)
-
-# Vivero: el peón regenerado vuelve a la primera casilla libre de su fila
-var spot := board.first_empty_in_row(1)  # fila 2 del jugador
+var step := result.hunter.step
+if step.has_moved():
+    board.destroy_piece(step.to)          # aplastamiento, si había algo
+    board.move_piece(step.from, step.to)
+if Board.is_inside(result.felled):
+    board.set_blocked(result.felled)      # casilla talada por la retroexcavadora
+var spot := board.first_empty_in_row(1)   # fila 2 del jugador 1 (fila 7: 6)
 if spot != Board.INVALID:
     board.place_piece(pawn, spot)
 ```
 
-Los agentes ABM usan `Board.get_moore_neighborhood(coord, 2)` y `Board.manhattan_distance(coord, hunter_coord)`.
-
 **Biomas y HUD (Integrante 4).**
 
-- Al cargar un nivel, se cambia el tema con `board.board_theme = BoardTheme.create(&"amazonia")` o con un `.tres` propio.
+- El juego usa un solo bioma (Páramo); el tema se cambia con `board.board_theme = BoardTheme.create(&"paramo")` o con un `.tres` propio.
 - Un material especial para una casilla se pone con `board.get_cell(coord).custom_material`.
 - El entorno de cada bioma (cielo, luz, vegetación) va en las escenas de biomas. `tests/board/demo_environment.gd` es un ejemplo.
 - El HUD sigue siendo 2D, en un `CanvasLayer` encima de la vista 3D. Para mostrar la casilla bajo el cursor hay que conectar `cell_hovered`.
@@ -215,7 +213,7 @@ Controles (las acciones también están en la barra de abajo a la derecha del HU
 - F1: menú de pruebas (cazador, catástrofe, rival automático).
 - Teclas 1–4: cambian de bioma (Páramo, Amazonía, Santuario, Clásico).
 
-La demo se juega con las reglas FIDE reales. El rival automático es provisional (la IA real es del módulo de simulación) y se puede apagar para mover ambos bandos.
+La demo se juega con las reglas FIDE reales. Su rival automático es solo una herramienta de prueba: el juego final es de dos jugadores.
 
 Al abrir la demo, la cámara hace una entrada cinematográfica: parte de una vista panorámica y baja hasta el tablero (`-- --no-intro` la omite). Cada bioma tiene su propio entorno:
 
@@ -236,7 +234,7 @@ En la ambientación aparecieron dos detalles del renderer de compatibilidad que 
 1. **El juego ahora es 3D.** Biomas (Integrante 4) e integración (Integrante 5) deben trabajar con escenas 3D. El HUD sigue siendo 2D.
 2. **¿Qué significa "casilla bloqueada"?** El tablero la marca y la dibuja, pero no impide mover piezas ahí. El módulo de piezas debe decidir si una pieza puede entrar a una casilla bloqueada.
 3. **¿El cazador ocupa la casilla?** Se modeló como un ocupante más, siguiendo el ejemplo del documento ("la casilla e5 queda ocupada por el cazador"). Falta definir si una pieza puede capturarlo.
-4. **El cazador en el borde.** El documento no dice qué pasa si el paso aleatorio sale del tablero (quedarse quieto o volver a sortear). Lo decide el módulo de simulación. El tablero ofrece `is_inside()` y `get_orthogonal_neighbors()` para cualquiera de las dos opciones.
+4. **El cazador en el borde.** Resuelto: el cazador es ahora un agente que avanza hacia la pieza más cercana, y la caminata aleatoria la usa la retroexcavadora, que vuelve a sortear entre direcciones válidas en el borde.
 
 ## Guía de entrega
 
@@ -246,3 +244,21 @@ validación y con el 4 para materiales. Aceptación: tablero 8 × 8, una sola
 ocupación por casilla, señales tipadas, pruebas headless sin animaciones y
 ninguna regla FIDE dentro de `Board`. Entregar rama `feature/board-*` o
 `docs/board-*` con cambios, pruebas y capturas de la demo en el Pull Request.
+
+## Giro del tablero (juego de dos jugadores)
+
+`board.orient_to_side(side, animate = true)` gira el tablero 180° sobre su
+centro para que el jugador `side` (0 o 1) lo vea desde su lado. Las
+coordenadas, la ocupación y las reglas no cambian, y los clics siguen
+funcionando porque `ray_to_coord` usa la transformación global. Las etiquetas
+de coordenadas se voltean para leerse desde el lado de quien juega.
+
+| Miembro | Uso |
+|---|---|
+| `orient_to_side(side, animate)` | Llamarlo al empezar cada turno |
+| `view_side` | Bando hacia el que mira el tablero |
+| `turn_duration` | Duración del giro animado |
+| `orientation_changed(side)` | Se emite cuando termina el giro |
+
+La retroexcavadora del nivel 3 usa `set_blocked(coord)` para las casillas que
+tala.

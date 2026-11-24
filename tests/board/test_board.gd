@@ -39,6 +39,7 @@ func _run_all() -> void:
 	_test_blocked_and_highlights()
 	_test_signals()
 	_test_initial_setup_from_spec()
+	_test_orientation()
 	_test_themes()
 	await _test_animations()
 
@@ -129,6 +130,22 @@ func _test_world_conversion() -> void:
 	_check(_board.get_board_size() == 8 * s, "lado del tablero")
 	var bounds := _board.get_bounds()
 	_check(bounds.size.x > 8 * s and bounds.position.y < 0.0, "la caja incluye marco y base")
+
+
+func _test_orientation() -> void:
+	_section("Giro del tablero entre turnos")
+	var a1 := Vector2i(0, 0)
+	var sides := []
+	var record := func(side: int) -> void: sides.append(side)
+	_board.orientation_changed.connect(record)
+	_board.orient_to_side(1, false)
+	_check(is_equal_approx(_board.rotation.y, PI) and _board.view_side == 1, "gira 180 grados hacia el jugador 2")
+	var a1_floor := _board.to_global(_board.coord_to_position(a1))
+	_check(a1_floor.x > 0.0 and a1_floor.z < 0.0, "a1 queda en el lado opuesto")
+	_check(_board.ray_to_coord(a1_floor + Vector3.UP * 10.0, Vector3.DOWN) == a1, "los clics siguen llegando a la casilla correcta")
+	_board.orient_to_side(0, false)
+	_check(is_equal_approx(_board.rotation.y, 0.0) and sides == [1, 0], "vuelve al jugador 1 y avisa cada giro")
+	_board.orientation_changed.disconnect(record)
 
 
 func _test_ray_picking() -> void:

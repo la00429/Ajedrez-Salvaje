@@ -1,44 +1,76 @@
 # Reglas del juego
 
-## Ajedrez tradicional
+Ajedrez Salvaje es una partida de ajedrez FIDE completo **para dos jugadores
+en el mismo equipo**. Cada jugador cuida además su propio ecosistema: si su
+reserva de agua se agota, pierde. Una sola partida recorre tres niveles que
+endurecen el ambiente.
 
-La partida usa el tablero completo de 64 casillas y seis tipos de pieza:
+## Piezas
 
-| Pieza | Movimiento |
-|---|---|
-| Peón | Avanza una casilla, dos desde su salida; captura en diagonal |
-| Caballo | Salta en forma de L |
-| Alfil | Desplazamiento diagonal sin saltar |
-| Torre | Desplazamiento ortogonal sin saltar |
-| Dama | Combina alfil y torre |
-| Rey | Una casilla en cualquier dirección |
+| Pieza | Especie | Movimiento |
+|---|---|---|
+| Peón | Frailejón | Avanza una casilla, dos desde su salida; captura en diagonal |
+| Caballo | Venado de cola blanca | Salta en forma de L |
+| Alfil | Cóndor andino | Diagonal sin saltar |
+| Torre | Oso de anteojos | Ortogonal sin saltar |
+| Dama | Danta de montaña | Alfil + torre |
+| Rey | Frailejón Gran Abuelo | Una casilla en cualquier dirección |
 
-Las piezas no pueden atravesar ocupantes. Una captura elimina la pieza rival;
-un movimiento es legal solo si deja a salvo el propio rey. Se contemplan
-jaque, jaque mate y ahogado.
+Se aplican jaque, jaque mate, ahogado, enroque, captura al paso y promoción.
+Las tablas por 50 jugadas, triple repetición y material insuficiente no están
+implementadas; por eso existe una ronda final (ver Victoria).
 
-## Reglas especiales
+## Turnos y rondas
 
-- **Enroque:** corto o largo, si no se movieron rey/torre, el camino está
-  libre, el rey no está en jaque y no atraviesa casillas atacadas.
-- **Captura al paso:** solo inmediatamente después del avance doble rival.
-- **Promoción:** un peón que alcanza la última fila puede transformarse en
-  dama, torre, alfil o caballo.
-- **Tablas:** el ahogado está implementado. Las tablas por 50 movimientos,
-  triple repetición y material insuficiente están pendientes en el código.
+Una **ronda** es: fase ambiental, luego mueve el jugador 1 y luego el
+jugador 2. Al cambiar de turno el tablero **gira 180°** para que cada jugador
+vea desde su lado.
 
-## Representación y validación
+Fase ambiental, en este orden:
 
-`ChessPosition.squares` usa índices 0–63 y códigos de pieza/bando; soporta FEN,
-turno, `castling`, `en_passant`, `halfmove_clock` y `fullmove_number`.
-`MovementValidator.legal_moves` genera candidatas, aplica cada una sobre una
-copia y descarta las que dejan al rey atacado. `status` devuelve `PLAYING`,
-`CHECK`, `CHECKMATE`, `STALEMATE` o `KING_LOST`.
+1. **Clima** (Monte Carlo): un solo evento para los dos jugadores.
+2. **Agua** (dinámica de sistemas): se actualiza la reserva de cada jugador.
+3. **Vivero** (cola M/M/1): el vivero de cada jugador avanza si su agua supera
+   el 30 %.
+4. **Cazador** (agente): da un paso hacia la pieza más cercana.
+5. **Retroexcavadora** (caminata aleatoria): solo desde el nivel 3.
 
-## Mecánicas ambientales separadas
+## Ecosistema de cada jugador
 
-El cazador neutral, las casillas bloqueadas, vivero y simulaciones no redefinen
-las reglas FIDE. Actualmente `ChessPosition` permite configurar si el cazador
-es capturable y si las casillas bloqueadas son transitables. La decisión sobre
-qué hacer cuando un agente intenta salir del tablero y sobre la captura de un
-rey por el cazador debe aprobarse en integración.
+- **Agua.** Cada jugador empieza con 100 %. Sus frailejones vivos condensan
+  agua y la lluvia la recarga; la evaporación, el consumo de sus animales y
+  las catástrofes la gastan. Perder peones baja la condensación, así que
+  capturar los frailejones del rival ataca su agua.
+- **Vivero.** Un peón capturado o destruido entra a la cola del vivero de su
+  dueño. Al terminar su germinación rebrota en la primera casilla libre de su
+  fila de origen (fila 2 para el jugador 1 y fila 7 para el jugador 2).
+
+## Desestabilizadores
+
+- **Cazador furtivo.** Neutral, empieza en d4. Cada ronda avanza una casilla
+  hacia la pieza más cercana, de cualquier bando, y destruye lo que pise. No
+  se puede capturar y bloquea el paso.
+- **Retroexcavadora.** Aparece al iniciar el nivel 3 en una casilla libre al
+  azar. Se mueve con caminata aleatoria, destruye lo que pise y **tala la
+  casilla que deja**: queda bloqueada para el resto de la partida.
+
+Si un desestabilizador destruye un rey, gana el otro jugador.
+
+## Niveles
+
+| Nivel | Rondas | Qué cambia |
+|---|---|---|
+| 1 | 1 a 10 | Cazador y clima normal |
+| 2 | 11 a 20 | Clima severo: más heladas y catástrofes |
+| 3 | 21 en adelante | Aparece la retroexcavadora |
+
+## Victoria
+
+Se revisa en este orden:
+
+1. **Ajedrez:** jaque mate o rey destruido por un desestabilizador; el ahogado
+   es tablas.
+2. **Colapso hídrico:** si el agua de un jugador llega a 0, gana el otro. Si
+   ambos llegan a 0 en la misma ronda, tablas.
+3. **Ronda final (30):** gana quien tenga más agua; si empatan, más material
+   (peón 1, caballo y alfil 3, torre 5, dama 9); si también empatan, tablas.
