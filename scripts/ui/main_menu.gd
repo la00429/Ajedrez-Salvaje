@@ -10,7 +10,7 @@ extends Node3D
 ## (scenes/main/Main.tscn, integración), basta con cambiar esa ruta. Si la
 ## escena tiene un método [code]start_level(nivel: int)[/code], el menú lo llama.
 
-const GAME_SCENE_PATH := "res://tests/board/board_demo.tscn"
+const GAME_SCENE_PATH := "res://scenes/main/Main.tscn"
 const UiStyle := preload("res://scripts/ui/ui_style.gd")
 
 ## Datos de cada nivel (documento de preproducción, sección 4.3).
@@ -32,13 +32,13 @@ const LEVELS := [
 	},
 ]
 
-## Créditos: completar los nombres de cada integrante.
+## Créditos: integrantes del equipo ExpoSimu 2026.
 const CREDITS := [
-	["Integrante 1", "Tablero y casillas", "Por definir"],
-	["Integrante 2", "Piezas y reglas de ajedrez", "Por definir"],
-	["Integrante 3", "Motor de simulación", "Por definir"],
-	["Integrante 4", "Biomas e interfaz", "Por definir"],
-	["Integrante 5", "Integración y progresión", "Por definir"],
+	["Integrante 1", "Tablero y casillas", "Tomas Fernando Useche"],
+	["Integrante 2", "Piezas y reglas de ajedrez", "Laura Figueredo"],
+	["Integrante 3", "Motor de simulación", "Andres Santiago Daza"],
+	["Integrante 4", "Biomas e interfaz", "Valeria Tocarruncho"],
+	["Integrante 5", "Integración y progresión", "Juan Diego Sanchez"],
 ]
 
 const HOW_TO_PLAY := """[color=#d4b45a][b]OBJETIVO[/b][/color]

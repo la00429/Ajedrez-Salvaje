@@ -54,9 +54,9 @@ func _run(menu: Node) -> void:
 	menu.start_level(2)
 	await create_timer(1.6).timeout
 	var game := current_scene
-	_check(game != null and game.name == "BoardDemo", "se abre la escena de juego")
+	_check(game != null and (game.name == "BoardDemo" or game.name == "Main"), "se abre la escena de juego")
 	_check(not is_instance_valid(menu), "el menú se libera")
-	if game and game.name == "BoardDemo":
+	if game and (game.name == "BoardDemo" or game.name == "Main"):
 		_check(game._theme_name == &"amazonia", "el juego arranca en el bioma del nivel 2 (Amazonía)")
 
 		print("- Volver al menú")
