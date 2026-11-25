@@ -341,15 +341,13 @@ Los umbrales iniciales de audio serán parámetros configurables y deberán prob
 
 # 8. Arquitectura de implementación en Godot 4
 
-Se propone crear un administrador centralizado denominado `AudioManager`.
+Se implementó un administrador centralizado denominado `AudioManager`.
 
 Ubicación:
 
 `scripts/audio/audio_manager.gd`
 
-La escena correspondiente:
-
-`scenes/audio/AudioManager.tscn`
+Se registra como Autoload en `project.godot`; no necesita una escena propia.
 
 El administrador será responsable de:
 
@@ -368,13 +366,12 @@ Se proponen los siguientes buses:
 | Bus | Función |
 |---|---|
 | Master | Volumen general. |
-| Ambience | Sonidos ambientales. |
 | Music | Música original. |
-| Fauna | Actividad animal. |
-| Events | Interacciones. |
-| Simulation | Eventos de simulación. |
+| Ambience | Ambientes de bioma, clima y fauna continua. |
+| SFX | Eventos de juego, simulación, fauna puntual y maquinaria. |
+| UI | Interacciones de la interfaz. |
 
-Todos los buses deberán tener controles de volumen independientes y una salida común hacia Master.
+Los cinco buses están definidos en `audio_bus_layout.tres`; Music, Ambience, SFX y UI envían su salida a Master. Los controles de volumen y mute están disponibles por bus en el menú de pausa.
 
 ## 8.2. Comunicación entre módulos
 
@@ -410,7 +407,7 @@ Se recomienda utilizar `AudioStreamInteractive` o un sistema propio de capas cua
 
 # 9. Organización de archivos
 
-Se propone ampliar la estructura del repositorio:
+La estructura de recursos existente se conserva:
 
 ```text
 assets/
@@ -433,27 +430,16 @@ assets/
     └── ui/
 ```
 
-Scripts:
+El sistema integrado añade:
 
 ```text
 scripts/
 └── audio/
-    ├── audio_manager.gd
-    ├── ambience_controller.gd
-    ├── adaptive_music.gd
-    ├── audio_event_router.gd
-    └── audio_config.gd
+    └── audio_manager.gd
+audio_bus_layout.tres
 ```
 
-Escenas:
-
-```text
-scenes/
-└── audio/
-    └── AudioManager.tscn
-```
-
-Los nombres de los archivos deberán ser descriptivos, en minúsculas y con guiones bajos.
+El catálogo usa los nombres descriptivos en minúsculas y con guiones bajos. Los recursos integrados están en MP3 y sus rutas se registran en el Autoload.
 
 Ejemplos:
 
@@ -584,3 +570,38 @@ El resultado será un sistema sonoro que permita experimentar Ajedrez Salvaje no
 El jugador deberá poder reconocer diferencias entre el páramo, la Amazonía y el santuario mixto, y percibir cómo las acciones, las perturbaciones y las condiciones ambientales modifican progresivamente el paisaje sonoro.
 
 El audio será, por tanto, una extensión de los modelos de simulación y no un elemento independiente de la experiencia de juego.
+
+# 15. Integración implementada
+
+## 15.1. Uso desde GDScript
+
+`AudioManager` es un Autoload global. Los scripts deben invocar sus métodos semánticos, sin cargar los archivos directamente:
+
+```gdscript
+AudioManager.set_biome(&"amazonia")
+AudioManager.play_event(&"piece_capture")
+AudioManager.play_ui(&"confirm")
+AudioManager.play_fauna_call(&"amazonia")
+AudioManager.play_simulation(&"regeneration")
+AudioManager.update_simulation_state(&"amazonia", &"rain", lowest_water_percent, mining_active)
+AudioManager.set_bus_volume(&"Music", 0.75)
+AudioManager.set_bus_muted(&"SFX", true)
+```
+
+`set_biome(biome, play_transition)` selecciona la música y el ambiente del bioma; `play_transition` es opcional y por defecto está desactivado. `update_simulation_state` recibe el clima (`stable`, `rain`, `frost` o `catastrophe`), el porcentaje de agua más bajo de los dos ecosistemas y si la retroexcavadora está activa. Lluvia, helada y catástrofe activan o cambian su capa ambiental; el aviso de poca agua se dispara al cruzar el 30 % y se rearma al superar el 35 %. La fauna continua se activa al alcanzar el 60 % y se apaga bajo el 55 %. Estos umbrales solo controlan el audio; no modifican las reglas ni la simulación.
+
+`stop_music()`, `stop_biome_ambience()`, `stop_simulation_audio()` y `stop_all_audio()` detienen las capas correspondientes. Los cambios de bioma y clima usan fundidos de un segundo. Las capas ambientales y musicales no se reinician si su recurso ya está activo. Los efectos de juego e interfaz tienen grupos de reproducción limitados y una ventana de 350 ms para evitar duplicados.
+
+## 15.2. Recursos y buses
+
+El catálogo `AudioManager.AUDIO_PATHS` registra los 31 MP3 bajo sus rutas actuales en `assets/audio/`. `AudioManager.validate_audio_resources()` devuelve las rutas que Godot no encuentra. Ambientes, clima y fauna continua se enrutan a Ambience; música a Music; eventos, simulación, fauna puntual y maquinaria a SFX; controles a UI.
+
+## 15.3. Integración y verificación
+
+`GameManager` conecta el inicio de partida, movimiento, captura, jaque, resultado, clima, agua, regeneración del vivero, actividad real de la retroexcavadora y ataques del cazador. La pantalla de pausa expone volumen y mute de los cinco buses. El menú principal cambia el audio durante la vista previa del bioma.
+
+Ejecuta la prueba de recursos y buses con:
+
+```text
+godot --headless --path . --script res://tests/audio/test_audio_manager.gd
+```

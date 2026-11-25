@@ -41,6 +41,7 @@ const LEVELS := {
 @onready var camera: Camera3D = $Camera3D
 @onready var environment: Node3D = $Environment
 @onready var ui_layer: CanvasLayer = $UI
+@onready var _audio: AudioManagerService = get_node("/root/AudioManager")
 
 var hud: GameHUD
 var _match: ChessMatch
@@ -152,6 +153,7 @@ func _setup_game() -> void:
 	
 	_match = ChessMatch.new(board)
 	_match.setup_initial(ChessPosition.START_FEN, PIECE_SCALE)
+	_audio.play_event(&"game_start")
 	
 	# Colocar cazador neutral en la posición inicial (d4)
 	_hunter_piece = ChessPiece.create(ChessPiece.Kind.HUNTER, ChessPiece.Team.NEUTRAL)
@@ -193,6 +195,7 @@ func _apply_environment(result: RoundResult) -> void:
 				board.place_piece(pawn, empty_coord)
 				board.spawn_effect(empty_coord, Color(0.2, 0.95, 0.4))
 				hud.show_banner("¡Frailejón regenerado en %s!" % board.coord_to_algebraic(empty_coord), &"good")
+				_audio.play_simulation(&"regeneration")
 			else:
 				# Si la fila base está ocupada, reencolar en el vivero
 				_engine.enqueue_capture(side, entity.payload, _round_number)
@@ -204,6 +207,7 @@ func _apply_environment(result: RoundResult) -> void:
 		if board.is_occupied(to_coord):
 			var victim := board.get_piece_at(to_coord) as ChessPiece
 			if victim != null and victim != _hunter_piece:
+				_audio.play_fauna_call(_theme_name)
 				if victim.kind == ChessPiece.Kind.PAWN:
 					_engine.enqueue_capture(victim.side, victim, _round_number)
 				_send_to_tray(victim, to_coord, 2)
@@ -289,6 +293,7 @@ func _play(move: ChessMove) -> void:
 	board.input_enabled = false
 	var mover := _match.side_to_move()
 	var captured := _match.play(move)
+	_audio.play_event(&"piece_capture" if captured != null else &"piece_move")
 	var text := move.notation()
 	
 	if captured:
@@ -309,6 +314,7 @@ func _play(move: ChessMove) -> void:
 		text += "#"
 	elif status == MovementValidator.Status.CHECK:
 		text += "+"
+		_audio.play_event(&"king_threatened")
 	hud.add_move(mover, text)
 	
 	_last_move = [move.from_coord(), move.to_coord()]
@@ -379,6 +385,13 @@ func _check_victory() -> bool:
 			subtitle = "Tablas reglamentarias según el reglamento oficial FIDE."
 			result_kind = &"draw"
 			
+	if verdict.reason == Verdict.Reason.WATER_COLLAPSE or verdict.reason == Verdict.Reason.BOTH_COLLAPSED:
+		_audio.play_simulation(&"collapse")
+	if result_kind == &"victory":
+		_audio.play_event(&"victory")
+	elif result_kind == &"defeat":
+		_audio.play_event(&"defeat")
+	_audio.stop_simulation_audio()
 	hud.show_game_over(title, subtitle, result_kind)
 	hud.set_turn_message(title)
 	board.set_frame_glow(Color("#ffd75e") if result_kind == &"victory" else GLOW_CHECK, 1.8)
@@ -393,6 +406,19 @@ func _update_hud_round(result: RoundResult) -> void:
 		hud.show_banner("¡NIVEL %d: %s!" % [result.level, result.climate_label().to_upper()], &"info")
 		
 	_current_climate_str = result.climate_label()
+	var climate_name: StringName
+	match result.climate:
+		Climate.Type.RAIN:
+			climate_name = &"rain"
+		Climate.Type.FROST:
+			climate_name = &"frost"
+		Climate.Type.CATASTROPHE:
+			climate_name = &"catastrophe"
+		_:
+			climate_name = &"stable"
+	var lowest_water := minf(_engine.water(ChessPosition.PLAYER), _engine.water(ChessPosition.RIVAL))
+	_audio.update_simulation_state(
+			_theme_name, climate_name, lowest_water, _engine.excavator != Board.INVALID)
 	_update_hud_ecosystem(_match.side_to_move())
 
 
@@ -478,6 +504,7 @@ func _set_theme(theme_name: StringName) -> void:
 	_theme_name = theme_name
 	board.board_theme = BoardTheme.create(theme_name)
 	environment.apply_preset(theme_name)
+	_audio.set_biome(theme_name, true)
 	hud.apply_board_theme(board.board_theme)
 	var level: Array = LEVELS.get(theme_name, LEVELS[&"paramo"])
 	hud.set_level(level[0], level[1], level[2], level[3])
@@ -498,6 +525,7 @@ func _reset() -> void:
 
 
 func _go_to_menu() -> void:
+	_audio.stop_simulation_audio()
 	get_tree().change_scene_to_file(MENU_SCENE)
 
 

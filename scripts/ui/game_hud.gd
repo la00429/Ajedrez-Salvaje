@@ -79,6 +79,7 @@ var _game_over_result: StringName = &"draw"
 var _theme_buttons := {}
 var _move_count := 0
 var _paused := false
+@onready var _audio: AudioManagerService = get_node("/root/AudioManager")
 
 
 func _ready() -> void:
@@ -291,6 +292,8 @@ func is_paused() -> bool:
 
 
 func set_paused(paused: bool) -> void:
+	if _paused != paused:
+		_audio.play_ui(&"menu_open" if paused else &"menu_close")
 	_paused = paused
 	_pause_layer.visible = paused
 	if paused:
@@ -483,6 +486,7 @@ func _icon_button(icon_kind: StringName, tip: String, action: Callable) -> Butto
 	button.focus_mode = Control.FOCUS_NONE
 	button.tooltip_text = tip
 	button.pressed.connect(action)
+	button.pressed.connect(func() -> void: _audio.play_ui(&"click"))
 	var icon := HudIcon.new()
 	icon.kind = icon_kind
 	icon.color = Color(UiStyle.TEXT, 0.85)
@@ -643,6 +647,10 @@ func _build_pause_menu() -> void:
 		themes.add_child(button)
 		_theme_buttons[theme_name] = button
 	box.add_child(themes)
+	box.add_child(_spacer(4))
+	box.add_child(_centered_label("AUDIO", &"Heading"))
+	for bus_name in [&"Master", &"Music", &"Ambience", &"SFX", &"UI"]:
+		box.add_child(_audio_control_row(bus_name))
 	box.add_child(_spacer(6))
 	var restart := _big_button("Reiniciar partida")
 	restart.pressed.connect(_on_restart_pressed)
@@ -650,6 +658,40 @@ func _build_pause_menu() -> void:
 	var menu := _big_button("Menú principal")
 	menu.pressed.connect(func() -> void: menu_requested.emit())
 	box.add_child(menu)
+
+
+func _audio_control_row(bus_name: StringName) -> Control:
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	row.custom_minimum_size.x = 430.0
+	row.add_theme_constant_override("separation", 8)
+
+	var label := _centered_label(String(bus_name), &"Muted")
+	label.custom_minimum_size.x = 78.0
+	row.add_child(label)
+
+	var slider := HSlider.new()
+	slider.min_value = 0.0
+	slider.max_value = 1.0
+	slider.step = 0.01
+	slider.value = _audio.get_bus_volume(bus_name)
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.custom_minimum_size.x = 170.0
+	slider.tooltip_text = "Volumen de %s" % bus_name
+	slider.value_changed.connect(func(value: float) -> void: _audio.set_bus_volume(bus_name, value))
+	row.add_child(slider)
+
+	var mute := _text_button("Silenciar")
+	mute.toggle_mode = true
+	mute.set_pressed_no_signal(_audio.is_bus_muted(bus_name))
+	mute.text = "Activar" if mute.button_pressed else "Silenciar"
+	mute.pressed.connect(func() -> void:
+		_audio.set_bus_muted(bus_name, mute.button_pressed)
+		mute.text = "Activar" if mute.button_pressed else "Silenciar"
+	)
+	row.add_child(mute)
+	return row
 
 
 func _build_game_over() -> void:
@@ -741,6 +783,7 @@ func _text_button(text: String) -> Button:
 	button.text = text
 	button.focus_mode = Control.FOCUS_NONE
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	button.pressed.connect(func() -> void: _audio.play_ui(&"click"))
 	return button
 
 
@@ -749,4 +792,5 @@ func _big_button(text: String) -> Button:
 	button.text = text
 	button.theme_type_variation = &"BigButton"
 	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	button.pressed.connect(func() -> void: _audio.play_ui(&"click"))
 	return button

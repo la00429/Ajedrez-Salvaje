@@ -37,8 +37,8 @@ const CREDITS := [
 	["Integrante 1", "Tablero y casillas", "Tomas Fernando Useche"],
 	["Integrante 2", "Piezas y reglas de ajedrez", "Laura Figueredo"],
 	["Integrante 3", "Motor de simulación", "Andres Santiago Daza"],
-	["Integrante 4", "Biomas e interfaz", "Valeria Tocarruncho"],
-	["Integrante 5", "Integración y progresión", "Juan Diego Sanchez"],
+	["Integrante 4", "Biomas e interfaz", "Juan Diego Sanchez"],
+	["Integrante 5", "Integración y progresión", "Valeria Tocarruncho"],
 ]
 
 const HOW_TO_PLAY := """[color=#d4b45a][b]OBJETIVO[/b][/color]
@@ -72,6 +72,7 @@ const CYCLE_SECONDS := 14.0
 @onready var camera: Camera3D = $Camera3D
 @onready var environment: Node3D = $Environment
 @onready var ui_layer: CanvasLayer = $UI
+@onready var _audio: AudioManagerService = get_node("/root/AudioManager")
 
 var _screens := {}
 var _current_screen := &"main"
@@ -148,6 +149,7 @@ func _set_theme(theme_name: StringName) -> void:
 	_theme_name = theme_name
 	board.board_theme = BoardTheme.create(theme_name)
 	environment.apply_preset(theme_name)
+	_audio.set_biome(theme_name)
 	# La interfaz toma los colores del marco del tablero de este bioma.
 	UiStyle.apply(_ui_root.theme, board.board_theme)
 	_subtitle.add_theme_color_override("font_color", UiStyle.accent(board.board_theme))
@@ -185,6 +187,8 @@ func _hunter_step() -> void:
 # ---------------------------------------------------------------------------
 
 func _show_screen(screen_name: StringName) -> void:
+	if screen_name != _current_screen:
+		_audio.play_ui(&"menu_close" if screen_name == &"main" else &"menu_open")
 	_current_screen = screen_name
 	for key in _screens:
 		var screen: Control = _screens[key]
@@ -372,6 +376,7 @@ func _level_card(index: int) -> Control:
 	button.focus_mode = Control.FOCUS_ALL
 	button.mouse_entered.connect(_preview_theme.bind(level["theme"]))
 	button.focus_entered.connect(_preview_theme.bind(level["theme"]))
+	button.pressed.connect(func() -> void: _audio.play_ui(&"confirm"))
 	button.pressed.connect(start_level.bind(index + 1))
 	card.add_child(button)
 
@@ -467,4 +472,5 @@ func _menu_button(text: String) -> Button:
 	button.custom_minimum_size = Vector2(300, 46)
 	button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	button.add_theme_font_size_override("font_size", 19)
+	button.pressed.connect(func() -> void: _audio.play_ui(&"click"))
 	return button
