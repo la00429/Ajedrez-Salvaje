@@ -61,6 +61,7 @@ godot --headless --path . --script res://tests/pieces/test_rules.gd
 godot --headless --path . --script res://tests/board/test_board.gd
 godot --headless --path . --script res://tests/simulation/test_simulation.gd
 godot --headless --path . --script res://tests/ui/test_main_menu.gd
+godot --headless --path . --script res://tests/audio/test_audio_manager.gd
 ```
 
 Detalles en [`docs/pruebas.md`](docs/pruebas.md).

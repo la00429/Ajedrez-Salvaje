@@ -58,6 +58,10 @@ func _run(menu: Node) -> void:
 	_check(not is_instance_valid(menu), "el menú se libera")
 	if game and (game.name == "BoardDemo" or game.name == "Main"):
 		_check(game._theme_name == &"amazonia", "el juego arranca en el bioma del nivel 2 (Amazonía)")
+		game.hud.set_paused(true)
+		var audio_sliders: Array = game.hud._pause_layer.find_children("*", "HSlider", true, false)
+		_check(audio_sliders.size() == 5, "la pausa expone un control de volumen por bus")
+		game.hud.set_paused(false)
 
 		print("- Volver al menú")
 		game._go_to_menu()
@@ -65,5 +69,8 @@ func _run(menu: Node) -> void:
 		await process_frame
 		_check(current_scene != null and current_scene.name == "MainMenu", "Esc / botón vuelve al menú principal")
 
+	var audio_manager := root.get_node("AudioManager") as AudioManagerService
+	audio_manager.stop_all_audio()
+	await create_timer(1.1).timeout
 	print("\n%d comprobaciones, %d fallidas" % [_checks, _failures])
 	quit(1 if _failures > 0 else 0)
