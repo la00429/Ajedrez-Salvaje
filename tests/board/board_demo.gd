@@ -82,7 +82,8 @@ func _ready() -> void:
 	hud.view_toggle_requested.connect(_toggle_panorama)
 	hud.restart_requested.connect(_reset)
 	hud.menu_requested.connect(_go_to_menu)
-	hud.auto_rival_toggled.connect(_toggle_auto_rival)
+	if hud.has_signal(&"auto_rival_toggled"):
+		hud.connect(&"auto_rival_toggled", _toggle_auto_rival)
 	hud.theme_selected.connect(_set_theme)
 	hud.pause_changed.connect(_on_pause_changed)
 	board.cell_clicked.connect(_on_cell_clicked)

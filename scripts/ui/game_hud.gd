@@ -13,7 +13,7 @@ extends Control
 ##   muestra.
 ## - Jugadas: cajón a la derecha, cerrado por defecto (Tab o ícono).
 ## - Íconos discretos arriba a la derecha: jugadas, vista y pausa.
-## - Menú de pruebas (F1): paso del cazador, catástrofe, rival automático.
+## - Menú de pruebas (F1): paso del cazador, catástrofe, reiniciar partida.
 ## - Pausa (Esc) y fin de partida a pantalla completa, sin cajas.
 ##
 ## Solo presenta información: no calcula nada. El juego le pasa los datos con
@@ -24,7 +24,6 @@ signal catastrophe_requested
 signal view_toggle_requested
 signal restart_requested
 signal menu_requested
-signal auto_rival_toggled(enabled: bool)
 signal theme_selected(theme_name: StringName)
 signal pause_changed(paused: bool)
 
@@ -69,7 +68,6 @@ var _hover_label: Label
 var _banner: Label
 var _banner_tween: Tween
 var _debug_panel: VBoxContainer
-var _auto_button: Button
 var _pause_layer: Control
 var _game_over_layer: Control
 var _game_over_box: VBoxContainer
@@ -275,11 +273,6 @@ func show_game_over(title: String, subtitle: String, result: StringName) -> void
 
 func hide_game_over() -> void:
 	_game_over_layer.visible = false
-
-
-func set_auto_rival(enabled: bool) -> void:
-	_auto_button.set_pressed_no_signal(enabled)
-	_auto_button.text = "Rival automático: %s" % ("sí" if enabled else "no")
 
 
 func set_theme_name(theme_name: StringName) -> void:
@@ -608,17 +601,6 @@ func _build_debug_panel() -> void:
 		var action: Signal = entry[1]
 		button.pressed.connect(func() -> void: action.emit())
 		_debug_panel.add_child(button)
-	_auto_button = _text_button("Rival automático: sí")
-	_auto_button.toggle_mode = true
-	_auto_button.button_pressed = true
-	_auto_button.tooltip_text = "Rival PROVISIONAL (la IA real es del módulo de simulación). Apagado: mueves ambos bandos."
-	_auto_button.toggled.connect(_on_auto_toggled)
-	_debug_panel.add_child(_auto_button)
-
-
-func _on_auto_toggled(enabled: bool) -> void:
-	_auto_button.text = "Rival automático: %s" % ("sí" if enabled else "no")
-	auto_rival_toggled.emit(enabled)
 
 
 func _build_pause_menu() -> void:
