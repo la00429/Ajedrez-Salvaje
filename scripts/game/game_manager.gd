@@ -149,6 +149,11 @@ func _setup_game() -> void:
 		hud.clear_moves()
 	
 	_config = SimulationConfig.new()
+	# Posición inicial aleatoria del cazador en la franja central neutral (filas 4-5)
+	# para evitar sesgo hacia las piezas blancas (d4 -> y=3 estaba más cerca de blancas)
+	var spawn_rng := RandomNumberGenerator.new()
+	spawn_rng.randomize()
+	_config.hunter_start = Vector2i(spawn_rng.randi_range(0, 7), spawn_rng.randi_range(3, 4))
 	_engine = SimulationEngine.new(_config)
 	
 	_match = ChessMatch.new(board)
