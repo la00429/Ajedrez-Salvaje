@@ -15,3 +15,7 @@ export_presets.cfg
 .idea/
 *.iml
 
+# Python simulation generated graphics
+python_simulations/graficas/*.png
+python_simulations/graficas/*.import
+
