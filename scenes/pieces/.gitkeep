@@ -6,10 +6,10 @@ Integrante 2 - Piezas y reglas de ajedrez.
 ARCHIVOS PREVISTOS:
 - ChessPiece.tscn
 
-PIEZAS DEL ALCANCE REDUCIDO:
-- Peon.
-- Caballo.
-- Rey.
+PIEZAS (SET COMPLETO FIDE, decision del equipo):
+- Peon (frailejon), Caballo (venado), Alfil (condor),
+  Torre (oso de anteojos), Dama (danta), Rey (Gran Abuelo).
+- Ver docs/integrantes/integrante_2_piezas.md
 
 RESPONSABILIDADES:
 - Representar visualmente las piezas.
@@ -18,6 +18,5 @@ RESPONSABILIDADES:
 - Diferenciar las piezas de cada bando.
 
 REGLAS:
-- No implementar torres, alfiles ni dama.
-- No implementar enroque.
+- Reglas FIDE: enroque, captura al paso y coronacion incluidos.
 - Coordinar las reglas de movimiento con el tablero.

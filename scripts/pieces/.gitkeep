@@ -3,12 +3,11 @@
 RESPONSABLE:
 Integrante 2 - Piezas y reglas de ajedrez.
 
-ARCHIVOS PREVISTOS:
-- chess_piece.gd
-- pawn.gd
-- knight.gd
-- king.gd
-- movement_validator.gd
+ARCHIVOS:
+- chess_piece.gd, piece_models.gd, mesh_kit.gd
+- chess_position.gd, chess_move.gd
+- movement_validator.gd (movimiento de las 6 piezas)
+- chess_match.gd (une reglas y tablero)
 
 RESPONSABILIDADES:
 - Definir el comportamiento de cada pieza.
@@ -16,7 +15,7 @@ RESPONSABILIDADES:
 - Controlar capturas.
 - Evitar movimientos fuera del tablero.
 - Validar jaque y jaque mate.
-- Respetar las reglas del conjunto reducido.
+- Respetar las reglas FIDE con el set completo de piezas.
 
 REGLA:
 No asumir que un movimiento es valido solo porque la interfaz

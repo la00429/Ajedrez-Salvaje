@@ -10,3 +10,12 @@ export_presets.cfg
 # Temporary files
 *.tmp
 *.log
+
+# IDE specific files
+.idea/
+*.iml
+
+# Python simulation generated graphics
+python_simulations/graficas/*.png
+python_simulations/graficas/*.import
+
